@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "781292013877",
+    "project_id": "hubike-4e954",
+    "storage_bucket": "hubike-4e954.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:781292013877:android:7972f447b2a52a0247e47c",
+        "android_client_info": {
+          "package_name": "com.example.hubike"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCL5NsDFwYSpZZ8u7RTij7BsRohRnGkf0k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
