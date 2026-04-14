@@ -85,4 +85,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'hubike-4e954.firebasestorage.app',
     measurementId: 'G-0QR0640729',
   );
+
 }

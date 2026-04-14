@@ -7,7 +7,7 @@ class HubikeEvent {
   final String date;
   final String description; 
   final String eventName;
-  final String eventType; // The golden key for your filter buttons!
+  final String categoryId;
   final int price;
   final int priceInCoins;
   final String startingPoint;
@@ -19,32 +19,32 @@ class HubikeEvent {
     required this.date,
     required this.description,
     required this.eventName,
-    required this.eventType,
+    required this.categoryId,
     required this.price,
     required this.priceInCoins,
     required this.startingPoint,
   });
 
   // THE TRANSLATOR: This factory method takes a Firebase Document and builds a HubikeEvent.
+  // THE TRANSLATOR: This factory method takes a Firebase Document and builds a HubikeEvent.
   factory HubikeEvent.fromFirestore(DocumentSnapshot doc) {
     // Grab the raw data map from the Firebase document
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
     return HubikeEvent(
-      id: doc.id, // Grabs the Firebase generated ID automatically
+      id: doc.id, 
       
-      // The ?? means "If this is missing in the database, use a default value so the app doesn't crash"
-      capacity: data['capacity'] ?? 0,
-      coinsToEarn: data['coinsToEarn'] ?? 0,
+      // THE FIX: We added .toInt() to force Firebase's decimals into standard integers!
+      capacity: (data['capacity'] ?? 0).toInt(),
+      coinsToEarn: (data['coinsToEarn'] ?? 0).toInt(),
+      price: (data['price'] ?? 0).toInt(),
+      priceInCoins: (data['priceInCoins'] ?? 0).toInt(),
+      
+      // Strings stay exactly the same
       date: data['date'] ?? 'TBD',
-      
-      // Notice we look for your exact database spelling "description" here!
       description: data['description'] ?? 'No description available.', 
-      
       eventName: data['eventName'] ?? 'Unknown Event',
-      eventType: data['eventType'] ?? 'All',
-      price: data['price'] ?? 0,
-      priceInCoins: data['priceInCoins'] ?? 0,
+      categoryId: data['categoryId'] ?? '',
       startingPoint: data['startingPoint'] ?? 'TBD',
     );
   }
