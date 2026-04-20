@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'inbox.dart'; 
 import 'events.dart';
+import 'shop.dart';
+import 'auth_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,7 +16,7 @@ class HomeScreenState extends State<HomeScreen> {
   int selectedIndex = 1; 
 
   final List<Widget> pages = [
-     Container(color: Colors.blue.shade50, child: const Center(child: Text("Shop", style: TextStyle(fontSize: 24)))),
+     const ShopPage(),
       const EventsPage(), 
      const InboxPage(),
   ];
@@ -38,6 +40,38 @@ class HomeScreenState extends State<HomeScreen> {
         backgroundColor: const Color(0xFF121212), 
         centerTitle: true,
         elevation: 0,
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AuthScreen()),
+              );
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFF39FF14),
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF39FF14).withOpacity(0.3),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.person,
+                color: Color(0xFF39FF14),
+                size: 20,
+              ),
+            ),
+          ),
+        ),
         shape: Border(
           bottom: BorderSide(color: Colors.white24, width: 0.2), // Thin white line at the bottom
         ),

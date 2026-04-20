@@ -1,0 +1,402 @@
+[4/18/2026 9:21 PM] Med Copin Sof: <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VELO-X | High Energy Rides</title>
+    
+    <!-- Tailwind CSS for layout and utilities -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts for high-energy sporty look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Rajdhani:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --neon-green: #39FF14;
+            --neon-green-dim: rgba(57, 255, 20, 0.2);
+            --dark-bg: #050505;
+            --panel-bg: #121212;
+        }
+
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            /* Center the app on desktop, full screen on mobile */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-image: radial-gradient(circle at 50% 0%, #1a2a1a 0%, #000 50%);
+        }
+
+        /* Sporty Header Font */
+        .font-display {
+            font-family: 'Rajdhani', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Mobile App Container Constraint */
+        .app-container {
+            width: 100%;
+            max-width: 420px;
+            height: 100vh;
+            max-height: 900px;
+            background-color: var(--dark-bg);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 40px rgba(57, 255, 20, 0.1);
+        }
+
+        /* Custom Scrollbar hide */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Neon Utilities */
+        .text-neon {
+            color: var(--neon-green);
+            text-shadow: 0 0 8px var(--neon-green-dim);
+        }
+        .bg-neon {
+            background-color: var(--neon-green);
+            color: #000;
+            box-shadow: 0 0 15px var(--neon-green-dim);
+        }
+        .border-neon {
+            border: 1px solid var(--neon-green);
+            box-shadow: inset 0 0 10px var(--neon-green-dim), 0 0 10px var(--neon-green-dim);
+        }
+        
+        .glass-panel {
+            background: rgba(18, 18, 18, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Image Gradients */
+        .img-gradient-overlay {
+            background: linear-gradient(to top, var(--dark-bg) 0%, transparent 80%);
+        }
+
+        /* Tab Transitions */
+        .tab-content {
+            display: none;
+            animation: fadeUp 0.3s ease-out forwards;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Floating Center Button */
+        .nav-center-btn {
+            transform: translateY(-20px);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .nav-center-btn:active {
+            transform: translateY(-15px) scale(0.95);
+        }
+        
+        /* Nav Item Styles */
+        .nav-item {
+            color: #666;
+            transition: color 0.3s ease;
+        }
+        .nav-item.active {
+            color: white;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+    </style>
+</head>
+<body>
+[4/18/2026 9:21 PM] Med Copin Sof: <div class="app-container border border-zinc-900 sm:border-zinc-800 sm:rounded-3xl">
+        
+        <!-- Header -->
+        <header class="flex justify-between items-center p-5 z-20 glass-panel sticky top-0">
+            <div class="flex items-center gap-2">
+                <i data-lucide="zap" class="text-neon w-6 h-6"></i>
+                <h1 class="font-display text-2xl font-bold tracking-wider">VELO<span class="text-neon">-X</span></h1>
+            </div>
+            <div class="w-10 h-10 rounded-full border-2 border-zinc-800 overflow-hidden relative">
+                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Profile" class="w-full h-full object-cover">
+                <div class="absolute top-0 right-0 w-3 h-3 bg-neon rounded-full border border-black"></div>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 overflow-y-auto no-scrollbar pb-24">
+            
+            <!-- ===================== EVENTS TAB (MIDDLE/FOCUS) ===================== -->
+            <div id="tab-events" class="tab-content active p-4">
+                
+                <!-- Quick Filters -->
+                <div class="flex gap-3 overflow-x-auto no-scrollbar mb-6 pb-2">
+                    <button class="bg-neon font-display font-bold px-5 py-2 rounded-full text-sm whitespace-nowrap tracking-wide">ALL RIDES</button>
+                    <button class="glass-panel font-display font-semibold px-5 py-2 rounded-full text-sm text-zinc-300 whitespace-nowrap tracking-wide border border-zinc-700 hover:border-neon transition-colors">NIGHT SPRINT</button>
+                    <button class="glass-panel font-display font-semibold px-5 py-2 rounded-full text-sm text-zinc-300 whitespace-nowrap tracking-wide border border-zinc-700 hover:border-neon transition-colors">DIRT / MTB</button>
+                    <button class="glass-panel font-display font-semibold px-5 py-2 rounded-full text-sm text-zinc-300 whitespace-nowrap tracking-wide border border-zinc-700 hover:border-neon transition-colors">CHILL CRUISE</button>
+                </div>
+
+                <h2 class="font-display text-xl text-zinc-400 mb-4 flex items-center gap-2">
+                    <i data-lucide="flame" class="w-5 h-5 text-neon"></i> Featured Drop
+                </h2>
+[4/18/2026 9:21 PM] Med Copin Sof: <!-- Featured Event Card -->
+                <div class="relative w-full h-80 rounded-2xl overflow-hidden mb-8 border-neon group cursor-pointer">
+                    <img src="https://images.unsplash.com/photo-1517649763962-0c623066013b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80" alt="Night Ride" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                    <div class="absolute inset-0 img-gradient-overlay"></div>
+                    
+                    <!-- Top Badges -->
+                    <div class="absolute top-4 left-4 flex gap-2">
+                        <span class="bg-black/60 backdrop-blur-md text-neon font-display font-bold px-3 py-1 rounded border border-neon/50 text-xs">HARDCORE</span>
+                        <span class="bg-black/60 backdrop-blur-md text-white font-display font-bold px-3 py-1 rounded border border-white/20 text-xs">35 KM/H+</span>
+                    </div>
+                    
+                    <!-- Bottom Content -->
+                    <div class="absolute bottom-0 left-0 w-full p-5">
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <p class="text-neon font-display font-bold text-sm mb-1 tracking-widest">TONIGHT • 22:00</p>
+                                <h3 class="font-display text-3xl font-bold leading-none mb-2">NEON <br> CITY SPRINT</h3>
+                                <div class="flex items-center gap-3 text-sm text-zinc-300">
+                                    <span class="flex items-center gap-1"><i data-lucide="map-pin" class="w-4 h-4 text-zinc-400"></i> Downtown Plaza</span>
+                                    <span class="flex items-center gap-1"><i data-lucide="users" class="w-4 h-4 text-zinc-400"></i> 42 Joined</span>
+                                </div>
+                            </div>
+                            <button class="w-12 h-12 rounded-full bg-neon flex items-center justify-center text-black shadow-[0_0_20px_rgba(57,255,20,0.5)] hover:scale-110 transition-transform">
+                                <i data-lucide="arrow-right" class="w-6 h-6"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <h2 class="font-display text-xl text-zinc-400 mb-4">Upcoming Missions</h2>
+
+                <!-- Smaller Event Card 1 -->
+                <div class="glass-panel rounded-2xl p-4 mb-4 flex gap-4 items-center border border-zinc-800 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                    <div class="w-20 h-20 rounded-xl overflow-hidden shrink-0">
+                        <img src="https://images.unsplash.com/photo-1541625602330-2277a4c4618c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" alt="Trail" class="w-full h-full object-cover">
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-blue-400 font-display font-bold text-xs mb-1">TOMORROW • 06:00 AM</p>
+                        <h4 class="font-display text-lg font-bold leading-tight mb-1">MUD & GRAVEL GRIND</h4>
+                        <div class="flex items-center gap-2 text-xs text-zinc-400">
+                            <span class="bg-zinc-800 px-2 py-0.5 rounded">45 KM</span>
+                            <span class="bg-zinc-800 px-2 py-0.5 rounded">MODERATE</span>
+                        </div>
+                    </div>
+                    <button class="w-10 h-10 rounded-full border border-zinc-600 flex items-center justify-center hover:border-neon hover:text-neon transition-colors">
+                        <i data-lucide="plus" class="w-5 h-5"></i>
+                    </button>
+                </div>
+[4/18/2026 9:21 PM] Med Copin Sof: <!-- Smaller Event Card 2 -->
+                <div class="glass-panel rounded-2xl p-4 mb-4 flex gap-4 items-center border border-zinc-800 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-purple-500"></div>
+                    <div class="w-20 h-20 rounded-xl overflow-hidden shrink-0">
+                        <img src="https://images.unsplash.com/photo-1558981420-c532902e58b4?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" alt="Casual" class="w-full h-full object-cover">
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-purple-400 font-display font-bold text-xs mb-1">SUNDAY • 16:00 PM</p>
+                        <h4 class="font-display text-lg font-bold leading-tight mb-1">SUNSET COASTAL CHILL</h4>
+                        <div class="flex items-center gap-2 text-xs text-zinc-400">
+                            <span class="bg-zinc-800 px-2 py-0.5 rounded">20 KM</span>
+                            <span class="bg-zinc-800 px-2 py-0.5 rounded">EASY/SOCIAL</span>
+                        </div>
+                    </div>
+                    <button class="w-10 h-10 rounded-full border border-zinc-600 flex items-center justify-center hover:border-neon hover:text-neon transition-colors">
+                        <i data-lucide="plus" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- ===================== SHOP TAB ===================== -->
+            <div id="tab-shop" class="tab-content p-4">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="font-display text-3xl font-bold">GEAR <span class="text-neon">DROP</span></h2>
+                    <span class="text-sm font-bold bg-zinc-800 px-3 py-1 rounded-full text-neon"><i data-lucide="coins" class="w-4 h-4 inline pb-1"></i> 2,450 PTS</span>
+                </div>
+
+                <!-- Featured Shop Item -->
+                <div class="glass-panel rounded-2xl p-5 border border-zinc-800 mb-6 text-center">
+                    <div class="w-full h-48 mb-4 relative flex items-center justify-center">
+                        <div class="absolute inset-0 bg-neon opacity-5 blur-2xl rounded-full"></div>
+                        <img src="https://images.unsplash.com/photo-1572004944458-18e385dc6201?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="Helmet" class="h-full object-contain mix-blend-lighten z-10 rounded-xl">
+                    </div>
+                    <h3 class="font-display text-xl font-bold">AERO-X CARBON HELMET</h3>
+                    <p class="text-zinc-400 text-sm mb-4">Ultra-lightweight. High visibility neon accents.</p>
+                    <button class="w-full py-3 bg-white text-black font-display font-bold rounded-xl hover:bg-neon transition-colors">UNLOCK FOR 15,000 PTS</button>
+                </div>
+
+                <!-- Grid items -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="glass-panel rounded-2xl p-4 border border-zinc-800">
+                        <div class="h-24 bg-zinc-900 rounded-lg mb-3 flex items-center justify-center">
+                            <i data-lucide="shirt" class="w-10 h-10 text-zinc-600"></i>
+                        </div>
+                        <h4 class="font-display font-bold text-sm">NIGHT RIDER JERSEY</h4>
+                        <p class="text-neon text-sm font-bold mt-1">5,000 PTS</p>
+                    </div>
+                    <div class="glass-panel rounded-2xl p-4 border border-zinc-800">
+                        <div class="h-24 bg-zinc-900 rounded-lg mb-3 flex items-center justify-center">
+                            <i data-lucide="battery-charging" class="w-10 h-10 text-zinc-600"></i>
+                        </div>
+                        <h4 class="font-display font-bold text-sm">1000LM LED LIGHT</h4>
+                        <p class="text-neon text-sm font-bold mt-1">3,200 PTS</p>
+                    </div>
+                </div>
+            </div>
+[4/18/2026 9:21 PM] Med Copin Sof: <!-- ===================== INBOX TAB ===================== -->
+            <div id="tab-inbox" class="tab-content p-4">
+                <h2 class="font-display text-3xl font-bold mb-6">COMMS <span class="text-neon">LINK</span></h2>
+                
+                <div class="space-y-3">
+                    <!-- Unread Message -->
+                    <div class="glass-panel rounded-xl p-4 flex gap-4 items-start border border-neon/30 bg-neon/5">
+                        <div class="relative">
+                            <div class="w-12 h-12 rounded-full bg-zinc-800 overflow-hidden">
+                                <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80" class="w-full h-full object-cover">
+                            </div>
+                            <div class="absolute bottom-0 right-0 w-3 h-3 bg-neon rounded-full border-2 border-black"></div>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-center mb-1">
+                                <h4 class="font-display font-bold text-lg">Rider Alpha (Host)</h4>
+                                <span class="text-xs text-neon font-bold">JUST NOW</span>
+                            </div>
+                            <p class="text-sm text-zinc-300">Route change for tonight's sprint! We are meeting at the North Gate instead. Be sharp.</p>
+                        </div>
+                    </div>
+
+                    <!-- Read Message -->
+                    <div class="glass-panel rounded-xl p-4 flex gap-4 items-start border border-zinc-800 opacity-70">
+                        <div class="w-12 h-12 rounded-full bg-zinc-800 overflow-hidden flex items-center justify-center text-zinc-500">
+                            <i data-lucide="users" class="w-6 h-6"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-center mb-1">
+                                <h4 class="font-display font-bold text-lg">Sunday Chill Group</h4>
+                                <span class="text-xs text-zinc-500">YESTERDAY</span>
+                            </div>
+                            <p class="text-sm text-zinc-400">Great ride everyone! Photos have been uploaded to the gallery.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- System Message -->
+                    <div class="glass-panel rounded-xl p-4 flex gap-4 items-start border border-zinc-800">
+                        <div class="w-12 h-12 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center text-blue-500">
+                            <i data-lucide="award" class="w-6 h-6"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-center mb-1">
+                                <h4 class="font-display font-bold text-lg text-blue-400">System Link</h4>
+                                <span class="text-xs text-zinc-500">2 DAYS AGO</span>
+                            </div>
+                            <p class="text-sm text-zinc-300">You earned 500 PTS for completing the "Gravel Grind" event. Keep it pushing!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </main>
+[4/18/2026 9:21 PM] Med Copin Sof: <!-- ===================== BOTTOM NAVIGATION ===================== -->
+        <nav class="absolute bottom-0 w-full h-20 glass-panel border-t border-zinc-800/80 z-50 px-6 pb-2">
+            <div class="flex justify-between items-center h-full relative">
+                
+                <!-- Shop Tab Button -->
+                <button onclick="switchTab('shop')" id="btn-shop" class="nav-item flex flex-col items-center gap-1 w-16">
+                    <i data-lucide="shopping-cart" class="w-6 h-6"></i>
+                    <span class="text-[10px] font-display font-bold tracking-wider">GEAR</span>
+                </button>
+
+                <!-- Events (Center/Focus) Button -->
+                <button onclick="switchTab('events')" id="btn-events" class="nav-center-btn absolute left-1/2 -translate-x-1/2 w-16 h-16 bg-neon rounded-2xl flex flex-col items-center justify-center shadow-[0_0_25px_rgba(57,255,20,0.4)] border border-[#2bcf0d] z-10 group">
+                    <i data-lucide="map" class="w-7 h-7 text-black group-hover:scale-110 transition-transform"></i>
+                </button>
+                <!-- Ghost text for spacing -->
+                <div class="w-16 flex flex-col items-center justify-end h-full pb-1 pointer-events-none opacity-0">
+                    <span class="text-[10px] font-display font-bold tracking-wider text-neon">RIDES</span>
+                </div>
+
+                <!-- Inbox Tab Button -->
+                <button onclick="switchTab('inbox')" id="btn-inbox" class="nav-item flex flex-col items-center gap-1 w-16">
+                    <div class="relative">
+                        <i data-lucide="inbox" class="w-6 h-6"></i>
+                        <span class="absolute -top-1 -right-1 w-3 h-3 bg-neon rounded-full border-2 border-[#121212]"></span>
+                    </div>
+                    <span class="text-[10px] font-display font-bold tracking-wider">COMMS</span>
+                </button>
+
+            </div>
+        </nav>
+
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Tab Switching Logic
+        function switchTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+
+            // Reset Navigation Styles
+            document.getElementById('btn-shop').classList.remove('active', 'text-white');
+            document.getElementById('btn-inbox').classList.remove('active', 'text-white');
+            
+            // Re-style center button default state
+            const centerBtn = document.getElementById('btn-events');
+            centerBtn.classList.remove('bg-zinc-800', 'border-zinc-700', 'shadow-none');
+            centerBtn.classList.add('bg-neon', 'shadow-[0_0_25px_rgba(57,255,20,0.4)]');
+            centerBtn.querySelector('i').classList.remove('text-white');
+            centerBtn.querySelector('i').classList.add('text-black');
+
+            // Apply Active Styles
+            if (tabId === 'shop') {
+                document.getElementById('btn-shop').classList.add('active', 'text-white');
+                dimCenterButton();
+            } else if (tabId === 'inbox') {
+                document.getElementById('btn-inbox').classList.add('active', 'text-white');
+                dimCenterButton();
+            } else if (tabId === 'events') {
+                // Center button is already bright by default, just ensuring it stays that way
+            }
+        }
+
+        // Helper to dim the big center button when it's not active
+        function dimCenterButton() {
+            const centerBtn = document.getElementById('btn-events');
+            centerBtn.classList.remove('bg-neon', 'shadow-[0_0_25px_rgba(57,255,20,0.4)]');
+            centerBtn.classList.add('bg-zinc-800', 'border-zinc-700', 'shadow-none');
+            centerBtn.querySelector('i').classList.remove('text-black');
+            centerBtn.querySelector('i').classList.add('text-zinc-400');
+        }
+    </script>
+</body>
+</html>
