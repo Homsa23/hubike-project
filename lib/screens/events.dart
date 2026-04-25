@@ -19,7 +19,48 @@ class _EventsPageState extends State<EventsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF050505), 
+      backgroundColor: const Color(0xFF050505),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF121212),
+        elevation: 0,
+        title: Row(
+          children: [
+            const Text(
+              "HUBIKE",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: 2.0,
+                fontSize: 20,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF39FF14).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFF39FF14), width: 1),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.monetization_on, color: Color(0xFF39FF14), size: 20),
+                  const SizedBox(width: 4),
+                  Text(
+                    '0', // Initially 0 coins
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        centerTitle: false,
+      ),
       
       body: ListView(
           children: [
