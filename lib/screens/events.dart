@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'event_model.dart';
-import 'category_model.dart'; 
+import 'category_model.dart';
+import 'event_detail.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 class EventsPage extends StatefulWidget {
-  const EventsPage({super.key});
+  final bool signedIn;
+  final Map<String, dynamic>? currentUser;
+
+  const EventsPage({super.key, required this.signedIn, this.currentUser});
 
   @override
   State<EventsPage> createState() => _EventsPageState();
@@ -20,48 +24,6 @@ class _EventsPageState extends State<EventsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF050505),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF121212),
-        elevation: 0,
-        title: Row(
-          children: [
-            const Text(
-              "HUBIKE",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: 2.0,
-                fontSize: 20,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF39FF14).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFF39FF14), width: 1),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.monetization_on, color: Color(0xFF39FF14), size: 20),
-                  const SizedBox(width: 4),
-                  Text(
-                    '0', // Initially 0 coins
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        centerTitle: false,
-      ),
-      
       body: ListView(
           children: [
             const SizedBox(height: 40), 
@@ -331,50 +293,71 @@ class _EventsPageState extends State<EventsPage> {
   }
 
   Widget _buildEventCard(HubikeEvent event) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16.0),
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade900,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12, width: 1), 
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                event.eventName,
-                style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                "+${event.coinsToEarn} Coins",
-                style: const TextStyle(color: Color(0xFF39FF14), fontWeight: FontWeight.bold),
-              ),
-            ],
+    return GestureDetector(
+      onTap: () {
+        if (!widget.signedIn) {
+          // If the user is not signed in, prevent navigation and show a message.
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('You must sign in first.'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+          return;
+        }
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EventDetailPage(event: event, currentUser: widget.currentUser),
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(Icons.calendar_month, color: Colors.white54, size: 16),
-              const SizedBox(width: 6),
-              Text(event.date, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-              const SizedBox(width: 16),
-              const Icon(Icons.location_on, color: Colors.white54, size: 16),
-              const SizedBox(width: 6),
-              Text(event.startingPoint, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            event.description,
-            maxLines: 2, 
-            overflow: TextOverflow.ellipsis, 
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
-          ),
-        ],
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16.0),
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade900,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white12, width: 1), 
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  event.eventName,
+                  style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  "+${event.coinsToEarn} Coins",
+                  style: const TextStyle(color: Color(0xFF39FF14), fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.calendar_month, color: Colors.white54, size: 16),
+                const SizedBox(width: 6),
+                Text(event.date, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                const SizedBox(width: 16),
+                const Icon(Icons.location_on, color: Colors.white54, size: 16),
+                const SizedBox(width: 6),
+                Text(event.startingPoint, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              event.description,
+              maxLines: 2, 
+              overflow: TextOverflow.ellipsis, 
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+          ],
+        ),
       ),
     );
   }
