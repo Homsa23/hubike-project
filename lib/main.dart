@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart'; // Keep Firebase import
-import 'firebase_options.dart'; // Keep Firebase options
-import 'screens/onboarding_screen.dart'; // Your new import!
+import 'package:firebase_core/firebase_core.dart'; 
+import 'firebase_options.dart'; 
+import 'screens/onboarding_screen.dart'; 
+import 'screens/inside_event.dart';
+import 'screens/event_model.dart';
 
 void main() async {
   // 1. Ensure Flutter bindings are initialized (Required for Firebase)
@@ -25,10 +27,23 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Hubike',
       theme: ThemeData(
-        primarySwatch: Colors.green, // Great color choice for a cycling app!
+        primarySwatch: Colors.green, 
         useMaterial3: true,
       ),
-      home: const OnboardingScreen(), // Your new screen is now the home!
-    );
+      home: InsideEventScreen(
+        event: HubikeEvent(
+          id: "test_123",
+          eventName: "NEON CITY\nSPRINT",
+          description: "We are taking over the downtown grid tonight. High-speed, high-intensity sprint through the neon-lit sectors.",
+          date: "TONIGHT • 22:00",
+          startingPoint: "DOWNTOWN PLAZA",
+          price: 0,
+          coinsToEarn: 100,
+          capacity: 100,
+          categoryId: "sprint",
+          priceInCoins: 0,
+        ), // Closes HubikeEvent
+      ), // <--- ADDED THIS! Closes InsideEventScreen
+    ); // Closes MaterialApp
   }
 }

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VELO-X | Event Details</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Rajdhani:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --neon-green: #39FF14;
+            --neon-green-dim: rgba(57, 255, 20, 0.2);
+            --dark-bg: #050505;
+            --panel-bg: #121212;
+        }
+
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-image: radial-gradient(circle at 50% 0%, #1a2a1a 0%, #000 50%);
+        }
+
+        .font-display {
+            font-family: 'Rajdhani', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 420px;
+            height: 100vh;
+            max-height: 900px;
+            background-color: var(--dark-bg);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 40px rgba(57, 255, 20, 0.1);
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .text-neon {
+            color: var(--neon-green);
+            text-shadow: 0 0 8px var(--neon-green-dim);
+        }
+        .bg-neon {
+            background-color: var(--neon-green);
+            color: #000;
+            box-shadow: 0 0 15px var(--neon-green-dim);
+        }
+        .border-neon {
+            border: 1px solid var(--neon-green);
+            box-shadow: inset 0 0 10px var(--neon-green-dim), 0 0 10px var(--neon-green-dim);
+        }
+        
+        .glass-panel {
+            background: rgba(18, 18, 18, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Fades the bottom of the hero image into the background */
+        .hero-gradient {
+            background: linear-gradient(to bottom, transparent 0%, var(--dark-bg) 100%);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container border border-zinc-900 sm:border-zinc-800 sm:rounded-3xl">
+        
+        <header class="absolute top-0 w-full flex justify-between items-center p-5 z-20">
+            <button class="w-10 h-10 rounded-full glass-panel flex items-center justify-center hover:bg-zinc-800 transition-colors">
+                <i data-lucide="chevron-left" class="w-6 h-6 text-white"></i>
+            </button>
+            
+            <button class="w-10 h-10 rounded-full glass-panel flex items-center justify-center hover:text-neon hover:border-neon transition-colors">
+                <i data-lucide="share-2" class="w-5 h-5"></i>
+            </button>
+        </header>
+
+        <main class="flex-1 overflow-y-auto no-scrollbar pb-32">
+            
+            <div class="relative w-full h-80">
+                <img src="https://images.unsplash.com/photo-1517649763962-0c623066013b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80" alt="Event Hero" class="w-full h-full object-cover">
+                <div class="absolute inset-0 hero-gradient"></div>
+                
+                <div class="absolute bottom-4 left-5">
+                    <span class="bg-neon/20 text-neon border border-neon/50 font-display font-bold px-3 py-1 rounded backdrop-blur-md text-xs tracking-wider">
+                        ● LIVE REGISTRATION
+                    </span>
+                </div>
+            </div>
+
+            <div class="px-5 pt-2">
+                <p class="text-neon font-display font-bold text-sm mb-1 tracking-widest">TONIGHT • 22:00</p>
+                <h1 class="font-display text-4xl font-bold leading-none mb-4">NEON CITY <br> SPRINT</h1>
+
+                <div class="flex gap-3 mb-6">
+                    <div class="glass-panel px-4 py-2 rounded-xl flex-1 border border-zinc-800">
+                        <p class="text-zinc-500 text-xs font-bold mb-1">DISTANCE</p>
+                        <p class="font-display font-bold text-lg">35 KM</p>
+                    </div>
+                    <div class="glass-panel px-4 py-2 rounded-xl flex-1 border border-zinc-800">
+                        <p class="text-zinc-500 text-xs font-bold mb-1">PACE</p>
+                        <p class="font-display font-bold text-lg">35+ KM/H</p>
+                    </div>
+                    <div class="glass-panel px-4 py-2 rounded-xl flex-1 border border-zinc-800">
+                        <p class="text-zinc-500 text-xs font-bold mb-1">LEVEL</p>
+                        <p class="font-display font-bold text-lg text-red-500">HARD</p>
+                    </div>
+                </div>
+
+                <div class="glass-panel rounded-2xl p-4 flex gap-4 items-center border border-zinc-800 mb-6">
+                    <div class="w-12 h-12 rounded-full overflow-hidden border border-zinc-600 shrink-0">
+                        <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80" class="w-full h-full object-cover">
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-xs text-zinc-500 font-bold mb-0.5">HOSTED BY</p>
+                        <h4 class="font-display font-bold text-lg leading-tight">RIDER ALPHA</h4>
+                    </div>
+                    <button class="bg-zinc-800 text-white font-display font-bold px-4 py-2 rounded-full text-xs tracking-wide hover:bg-zinc-700">FOLLOW</button>
+                </div>
+
+                <h3 class="font-display text-xl text-zinc-400 mb-2">MISSION BRIEF</h3>
+                <p class="text-zinc-300 text-sm leading-relaxed mb-6">
+                    We are taking over the downtown grid tonight. High-speed, high-intensity sprint through the neon-lit sectors. Make sure your lights are fully charged and your tires are pumped. Dropping below 30km/h means you get left behind.
+                </p>
+
+                <div class="glass-panel rounded-2xl p-4 border border-zinc-800 mb-6">
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center text-neon border border-zinc-700">
+                            <i data-lucide="map-pin" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-display font-bold text-lg leading-tight mb-1">DOWNTOWN PLAZA</h4>
+                            <p class="text-zinc-400 text-xs">Sector 4, North Gate Entrance</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="font-display text-xl text-zinc-400 mb-3">SOCIAL COMMS</h3>
+                <div class="flex gap-3">
+                    <a href="#" class="flex-1 glass-panel flex items-center justify-center gap-2 py-3 rounded-xl border border-zinc-800 hover:border-pink-500 hover:text-pink-500 transition-colors group">
+                        <i data-lucide="instagram" class="w-5 h-5 text-zinc-400 group-hover:text-pink-500"></i>
+                        <span class="font-display font-bold text-sm tracking-wider">INSTAGRAM</span>
+                    </a>
+                    <a href="#" class="flex-1 glass-panel flex items-center justify-center gap-2 py-3 rounded-xl border border-zinc-800 hover:border-blue-500 hover:text-blue-500 transition-colors group">
+                        <i data-lucide="facebook" class="w-5 h-5 text-zinc-400 group-hover:text-blue-500"></i>
+                        <span class="font-display font-bold text-sm tracking-wider">FACEBOOK</span>
+                    </a>
+                </div>
+
+            </div>
+        </main>
+
+        <div class="absolute bottom-0 w-full p-5 glass-panel border-t border-zinc-800 z-50 bg-[#050505]/90">
+            <button class="w-full bg-neon text-black font-display font-bold text-xl py-4 rounded-2xl shadow-[0_0_30px_rgba(57,255,20,0.3)] hover:shadow-[0_0_40px_rgba(57,255,20,0.6)] hover:scale-[1.02] transition-all flex justify-center items-center gap-2">
+                <i data-lucide="zap" class="w-6 h-6"></i>
+                JOIN RIDE
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class HubikeEvent {
+class HubikeEvent{
   final String id; // We store the document ID (like zI0KS...) just in case you need it later
   final int capacity;
   final int coinsToEarn;
