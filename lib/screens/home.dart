@@ -13,13 +13,20 @@ class HomeScreen extends StatefulWidget {
 }
 
 class HomeScreenState extends State<HomeScreen> {
-  int selectedIndex = 1; 
+  int selectedIndex = 1;
+  Map<String, dynamic>? currentUser;
 
-  final List<Widget> pages = [
-     const ShopPage(),
-      const EventsPage(), 
-     const InboxPage(),
-  ];
+  bool get signedIn => currentUser != null;
+  int get coins => (currentUser?['coins'] as int?) ?? 0;
+
+  // Build the page list dynamically so sign-in state can be reflected whenever the home screen rebuilds.
+  List<Widget> get pages {
+    return [
+      const ShopPage(),
+      EventsPage(signedIn: signedIn, currentUser: currentUser),
+      const InboxPage(),
+    ];
+  }
 
   void onItemTapped(int index) {
     setState(() {
@@ -34,20 +41,53 @@ class HomeScreenState extends State<HomeScreen> {
       
       appBar: AppBar(
         title: const Text(
-          "HUBIKE", 
+          "HUBIKE",
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2.0),
         ),
         backgroundColor: const Color(0xFF121212), 
         centerTitle: true,
         elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 14.0),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF39FF14).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFF39FF14), width: 1),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.monetization_on, color: Color(0xFF39FF14), size: 20),
+                  const SizedBox(width: 6),
+                  Text(
+                    signedIn ? '$coins' : '0',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: GestureDetector(
             onTap: () {
-              Navigator.push(
+              Navigator.push<Map<String, dynamic>>(
                 context,
                 MaterialPageRoute(builder: (context) => const AuthScreen()),
-              );
+              ).then((userData) {
+                if (userData is Map<String, dynamic>) {
+                  setState(() {
+                    currentUser = userData;
+                  });
+                }
+              });
             },
             child: Container(
               decoration: BoxDecoration(
