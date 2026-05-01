@@ -12,7 +12,20 @@
           "package_name": "com.example.hubike"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "781292013877-9aabvsf1t2dua8pa0o0r26ohu4u4uaj2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.hubike",
+            "certificate_hash": "e999ff5733e95cd420ce878818b31b6a37ce63d0"
+          }
+        },
+        {
+          "client_id": "781292013877-tfda3th63o1qa32ftbjfiph2g84rh983.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCL5NsDFwYSpZZ8u7RTij7BsRohRnGkf0k"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "781292013877-tfda3th63o1qa32ftbjfiph2g84rh983.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "781292013877-gr9eo9rilj1scas7em61b3nevlpaavqk.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.hubike"
+              }
+            }
+          ]
         }
       }
     }

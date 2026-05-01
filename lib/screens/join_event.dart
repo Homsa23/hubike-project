@@ -48,6 +48,13 @@ class _JoinEventPageState extends State<JoinEventPage> {
   }
 
   Future<void> _joinEvent() async {
+    // TODO: Enable sign-in check here when ready for production
+    // if (widget.currentUser == null) {
+    //   _showError('You must sign in to join events.');
+    //   // Navigate to auth screen or show sign-in dialog
+    //   return;
+    // }
+
     if (nameController.text.trim().isEmpty || surnameController.text.trim().isEmpty) {
       _showError('Please enter both name and surname.');
       return;

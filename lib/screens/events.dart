@@ -295,16 +295,17 @@ class _EventsPageState extends State<EventsPage> {
   Widget _buildEventCard(HubikeEvent event) {
     return GestureDetector(
       onTap: () {
-        if (!widget.signedIn) {
-          // If the user is not signed in, prevent navigation and show a message.
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('You must sign in first.'),
-              duration: Duration(seconds: 3),
-            ),
-          );
-          return;
-        }
+        // TEMPORARILY DISABLED: Sign-in check moved to Join button
+        // TODO: Re-enable later when payment/join flow is ready
+        // if (!widget.signedIn) {
+        //   ScaffoldMessenger.of(context).showSnackBar(
+        //     const SnackBar(
+        //       content: Text('You must sign in first.'),
+        //       duration: Duration(seconds: 3),
+        //     ),
+        //   );
+        //   return;
+        // }
 
         Navigator.push(
           context,

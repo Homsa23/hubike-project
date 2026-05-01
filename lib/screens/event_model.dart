@@ -11,6 +11,8 @@ class HubikeEvent{
   final int price;
   final int priceInCoins;
   final String startingPoint;
+  final String level;
+  final String officialPageLink;
 
   HubikeEvent({
     required this.id,
@@ -23,6 +25,8 @@ class HubikeEvent{
     required this.price,
     required this.priceInCoins,
     required this.startingPoint,
+    required this.level,
+    required this.officialPageLink,
   });
 
   // THE TRANSLATOR: This factory method takes a Firebase Document and builds a HubikeEvent.
@@ -46,6 +50,8 @@ class HubikeEvent{
       eventName: data['eventName'] ?? 'Unknown Event',
       categoryId: data['categoryId'] ?? '',
       startingPoint: data['startingPoint'] ?? 'TBD',
+      level: data['level'] ?? 'All Levels',
+      officialPageLink: data['officialPageLink'] ?? '',
     );
   }
 }

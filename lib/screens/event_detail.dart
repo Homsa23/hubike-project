@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'event_model.dart';
-import 'join_event.dart';
+import 'ticket_page.dart';
 
 class EventDetailPage extends StatelessWidget {
   final HubikeEvent event;
@@ -12,82 +16,484 @@ class EventDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF050505),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF121212),
-        elevation: 0,
-        title: const Text(
-          'Event Details',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              event.eventName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                const Icon(Icons.calendar_month, color: Colors.white54, size: 18),
-                const SizedBox(width: 8),
-                Text(event.date, style: const TextStyle(color: Colors.white70)),
-                const SizedBox(width: 20),
-                const Icon(Icons.location_on, color: Colors.white54, size: 18),
-                const SizedBox(width: 8),
-                Text(event.startingPoint, style: const TextStyle(color: Colors.white70)),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Text(
-              event.description,
-              style: const TextStyle(color: Colors.white70, fontSize: 16),
-            ),
-            const SizedBox(height: 30),
-            Row(
-              children: [
-                const Icon(Icons.monetization_on, color: Color(0xFF39FF14)),
-                const SizedBox(width: 8),
-                Text(
-                  '+${event.coinsToEarn} Coins',
-                  style: const TextStyle(color: Color(0xFF39FF14), fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => JoinEventPage(event: event, currentUser: currentUser),
+      body: Stack(
+        children: [
+          // Scrollable content
+          Positioned.fill(
+            bottom: 120, // Leave space for bottom button
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // HERO IMAGE
+                Stack(
+                  children: [
+                    Container(
+                      height: 320,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        image: const DecorationImage(
+                          image: AssetImage('assets/adventure.jpg'),
+                          fit: BoxFit.cover,
+                        ),
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(30),
+                          bottomRight: Radius.circular(30),
+                        ),
+                      ),
                     ),
-                  );
+                    // Gradient overlay at bottom
+                    Container(
+                      height: 320,
+                      decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(30),
+                          bottomRight: Radius.circular(30),
+                        ),
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            const Color(0xFF050505).withAlpha(230),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Back button
+                    Positioned(
+                      top: 50,
+                      left: 20,
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF121212).withAlpha(180),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.arrow_back_ios,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Capacity badge (top right)
+                    Positioned(
+                      top: 50,
+                      right: 20,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF39FF14).withAlpha(30),
+                          border: Border.all(color: const Color(0xFF39FF14).withAlpha(100)),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'CAPACITY: ${event.capacity}',
+                          style: const TextStyle(
+                            color: Color(0xFF39FF14),
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Title on image
+                    Positioned(
+                      bottom: 20,
+                      left: 20,
+                      right: 20,
+                      child: Text(
+                        event.eventName.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 36,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
+                          height: 0.9,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+
+                // STATS ROW
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      _buildStatCard('DATE', event.date, Icons.calendar_today),
+                      const SizedBox(width: 10),
+                      _buildStatCard('LEVEL', event.level.toUpperCase(), Icons.fitness_center),
+                      const SizedBox(width: 10),
+                      _buildStatCard('COINS', '+${event.coinsToEarn}', Icons.monetization_on),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // HOST CARD (Simplified)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF121212),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withAlpha(10)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF39FF14).withAlpha(30),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFF39FF14)),
+                          ),
+                          child: const Icon(Icons.person, color: Color(0xFF39FF14)),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'HOSTED BY',
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'HUBIKE TEAM',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // DESCRIPTION
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'ABOUT',
+                        style: TextStyle(
+                          color: Colors.white54,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        event.description,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                          height: 1.6,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // LOCATION CARD
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF121212),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withAlpha(10)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF39FF14).withAlpha(20),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.location_on,
+                            color: Color(0xFF39FF14),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                event.startingPoint.toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Starting Point',
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // OFFICIAL EVENT LINK
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: GestureDetector(
+                    onTap: () async {
+                      if (event.officialPageLink.isNotEmpty) {
+                        final url = Uri.parse(event.officialPageLink);
+                        if (await canLaunchUrl(url)) {
+                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                        }
+                      }
+                    },
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.link,
+                          color: Color(0xFF39FF14),
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          event.officialPageLink.isNotEmpty
+                              ? 'Official Event Page'
+                              : 'No Official Link',
+                          style: TextStyle(
+                            color: const Color(0xFF39FF14),
+                            fontSize: 14,
+                            decoration: TextDecoration.underline,
+                            decorationColor: const Color(0xFF39FF14),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 140), // Extra space to scroll past fixed bottom button
+              ],
+            ),
+          ),
+        ),
+
+          // BOTTOM JOIN BUTTON
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF050505).withAlpha(240),
+                border: Border(
+                  top: BorderSide(color: Colors.white.withAlpha(10)),
+                ),
+              ),
+              child: Column(
+                children: [
+                  // Price display
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.payments_outlined,
+                          color: Colors.white70,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${event.price} DZD',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                onPressed: () async {
+                  // Check authentication
+                  final user = FirebaseAuth.instance.currentUser;
+                  if (user == null) {
+                    // User not logged in - show login prompt
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please sign in to join this event'),
+                        duration: Duration(seconds: 3),
+                      ),
+                    );
+                    return;
+                  }
+
+                  // User is logged in - create participation
+                  try {
+                    final participationRef = FirebaseFirestore.instanceFor(
+                      app: Firebase.app(),
+                      databaseId: 'default',
+                    ).collection('participation').doc();
+                    final participationId = participationRef.id;
+
+                    await participationRef.set({
+                      'id': participationId,
+                      'userId': user.uid,
+                      'eventId': event.id,
+                      'registrationDate': FieldValue.serverTimestamp(),
+                      'ispresent': false,
+                      'joinedbycoins': false,
+                      'winnedCoins': 0,
+                      'status': 'Registered',
+                    });
+
+                    // Show success message
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Successfully joined event!'),
+                        backgroundColor: Color(0xFF39FF14),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+
+                    // Navigate to Ticket Page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TicketPage(
+                          event: event,
+                          participationId: participationId,
+                        ),
+                      ),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error joining event: $e'),
+                        backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF39FF14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
                 ),
-                child: const Text(
-                  'JOIN',
-                  style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.bolt, size: 24),
+                    SizedBox(width: 8),
+                    Text(
+                      'JOIN RIDE',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    );
+    ],
+  ),
+);
   }
+}
+
+// Simple stat card widget
+Widget _buildStatCard(String label, String value, IconData icon) {
+  return Expanded(
+    child: Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF121212),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withAlpha(10)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: Colors.white54, size: 16),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white54,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    ),
+  );
 }

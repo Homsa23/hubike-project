@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
-import 'inbox.dart'; 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'inbox.dart';
 import 'events.dart';
 import 'shop.dart';
 import 'auth_screen.dart';
+import 'create_event_page.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,8 +20,93 @@ class HomeScreenState extends State<HomeScreen> {
   int selectedIndex = 1;
   Map<String, dynamic>? currentUser;
 
-  bool get signedIn => currentUser != null;
+  bool get signedIn => FirebaseAuth.instance.currentUser != null;
   int get coins => (currentUser?['coins'] as int?) ?? 0;
+  bool get isGroupLeader => (currentUser?['isGroupLeader'] as bool?) ?? false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+    // Listen to auth state changes
+    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      if (user != null) {
+        _loadCurrentUser();
+      } else {
+        setState(() {
+          currentUser = null;
+        });
+      }
+    });
+  }
+
+  FirebaseFirestore get _firestore => FirebaseFirestore.instanceFor(
+        app: Firebase.app(),
+        databaseId: 'default',
+      );
+
+  Future<void> _loadCurrentUser() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final doc = await _firestore
+          .collection('user')
+          .doc(user.uid)
+          .get();
+      if (doc.exists) {
+        setState(() {
+          currentUser = doc.data();
+        });
+      }
+    }
+  }
+
+  Future<void> _signOut() async {
+    await FirebaseAuth.instance.signOut();
+    setState(() {
+      currentUser = null;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Signed out successfully')),
+    );
+  }
+
+  void _showProfileMenu() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      // Show logout option for logged in users
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: const Color(0xFF121212),
+        builder: (context) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.logout, color: Colors.red),
+                title: const Text('Sign Out', style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _signOut();
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      // Show login screen for logged out users
+      Navigator.push<Map<String, dynamic>>(
+        context,
+        MaterialPageRoute(builder: (context) => const AuthScreen()),
+      ).then((userData) {
+        if (userData is Map<String, dynamic>) {
+          setState(() {
+            currentUser = userData;
+          });
+        }
+      });
+    }
+  }
 
   // Build the page list dynamically so sign-in state can be reflected whenever the home screen rebuilds.
   List<Widget> get pages {
@@ -48,6 +137,44 @@ class HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         elevation: 0,
         actions: [
+          // Group Leader: Create Event Button (only on Events page)
+          if (selectedIndex == 1 && isGroupLeader)
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CreateEventPage(),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF39FF14),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.add, color: Colors.black, size: 18),
+                      SizedBox(width: 4),
+                      Text(
+                        'NEW',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          // Coins display
           Padding(
             padding: const EdgeInsets.only(right: 14.0),
             child: Container(
@@ -77,18 +204,7 @@ class HomeScreenState extends State<HomeScreen> {
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: GestureDetector(
-            onTap: () {
-              Navigator.push<Map<String, dynamic>>(
-                context,
-                MaterialPageRoute(builder: (context) => const AuthScreen()),
-              ).then((userData) {
-                if (userData is Map<String, dynamic>) {
-                  setState(() {
-                    currentUser = userData;
-                  });
-                }
-              });
-            },
+            onTap: _showProfileMenu,
             child: Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
@@ -118,7 +234,7 @@ class HomeScreenState extends State<HomeScreen> {
       ),
       
       body: pages[selectedIndex],
-      
+
       // =========================================================
       // 1. THE BIG FLOATING CENTER BUTTON (EVENTS / RIDES)
       // =========================================================
