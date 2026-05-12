@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:table_calendar/table_calendar.dart';
 import 'dart:io';
 
 class AuthScreen extends StatefulWidget {
@@ -19,12 +20,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool isSignIn = true;
   bool _isGroupLeader = false;
   bool _isGoogleSignInLoading = false;
-  bool _isOtpLoading = false;
-  String? _verificationId;
-  UserCredential? _pendingUserCredential;
-  String? _pendingImageUrl;
   File? _selectedImage;
-  final TextEditingController phoneNumberSignInController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController firstNameController = TextEditingController();
   final TextEditingController lastNameController = TextEditingController();
@@ -32,10 +28,10 @@ class _AuthScreenState extends State<AuthScreen> {
   final TextEditingController residenceController = TextEditingController();
   final TextEditingController phoneNumberController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
+  final TextEditingController groupNameController = TextEditingController();
 
   @override
   void dispose() {
-    phoneNumberSignInController.dispose();
     passwordController.dispose();
     firstNameController.dispose();
     lastNameController.dispose();
@@ -43,6 +39,7 @@ class _AuthScreenState extends State<AuthScreen> {
     residenceController.dispose();
     phoneNumberController.dispose();
     emailController.dispose();
+    groupNameController.dispose();
     super.dispose();
   }
 
@@ -145,11 +142,11 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> _submitForm() async {
     if (isSignIn) {
-      final phoneError = _validatePhoneNumber(phoneNumberSignInController.text);
+      final emailError = _validateEmail(emailController.text);
       final passwordError = _validatePassword(passwordController.text);
 
-      if (phoneError != null) {
-        _showError(phoneError);
+      if (emailError != null) {
+        _showError(emailError);
         return;
       }
       if (passwordError != null) {
@@ -196,6 +193,12 @@ class _AuthScreenState extends State<AuthScreen> {
         return;
       }
 
+      // Validate Group Name if Group Leader
+      if (_isGroupLeader && groupNameController.text.trim().isEmpty) {
+        _showError('Group Name is required for Leaders');
+        return;
+      }
+
       await _createUserAccount();
     }
   }
@@ -219,23 +222,55 @@ class _AuthScreenState extends State<AuthScreen> {
         password: password,
       );
 
-      _pendingUserCredential = userCredential;
+      final uid = userCredential.user!.uid;
 
       // Upload image to Firebase Storage if selected
+      String? imageUrl;
       if (_selectedImage != null) {
         try {
-          final uid = userCredential.user!.uid;
           final storageRef = FirebaseStorage.instance.ref().child('profile_images/$uid.jpg');
           await storageRef.putFile(_selectedImage!);
-          _pendingImageUrl = await storageRef.getDownloadURL();
+          imageUrl = await storageRef.getDownloadURL();
         } catch (e) {
           debugPrint('Failed to upload image: $e');
-          _pendingImageUrl = null;
+          imageUrl = null;
         }
       }
 
-      // Start phone verification
-      await _verifyPhoneNumber(phone);
+      // Create user data
+      final userData = {
+        'uid': uid,
+        'first_name': firstNameController.text.trim(),
+        'last_name': lastNameController.text.trim(),
+        'birthdate': birthDateController.text.trim(),
+        'residence': residenceController.text.trim(),
+        'phone_number': phone,
+        'email': email,
+        'image': imageUrl ?? '',
+        'coins': 0,
+        'isGroupLeader': _isGroupLeader,
+        'created_at': FieldValue.serverTimestamp(),
+      };
+
+      // Save to users collection
+      await _firestore.collection('user').doc(uid).set(userData);
+
+      // If Group Leader, also create document in group_leader collection
+      if (_isGroupLeader) {
+        final leaderData = {
+          'groupleaderID': uid,
+          'firstName': firstNameController.text.trim(),
+          'lastName': lastNameController.text.trim(),
+          'groupName': groupNameController.text.trim(),
+          'created_at': FieldValue.serverTimestamp(),
+        };
+        await _firestore.collection('group_leader').doc(uid).set(leaderData);
+      }
+
+      _showSuccess('Account created successfully!');
+
+      // Return user data to HomeScreen
+      Navigator.pop(context, userData);
 
     } on FirebaseAuthException catch (e) {
       if (e.code == 'email-already-in-use') {
@@ -256,247 +291,32 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  Future<void> _verifyPhoneNumber(String phoneNumber) async {
-    setState(() => _isOtpLoading = true);
-
-    await FirebaseAuth.instance.verifyPhoneNumber(
-      phoneNumber: '+213$phoneNumber', // Algeria country code
-      verificationCompleted: (PhoneAuthCredential credential) async {
-        // Auto-verification on some Android devices
-        await _linkPhoneCredential(credential);
-      },
-      verificationFailed: (FirebaseAuthException e) {
-        setState(() => _isOtpLoading = false);
-        _showError('Phone verification failed: ${e.message}');
-      },
-      codeSent: (String verificationId, int? resendToken) {
-        setState(() {
-          _verificationId = verificationId;
-          _isOtpLoading = false;
-        });
-        _showOtpDialog();
-      },
-      codeAutoRetrievalTimeout: (String verificationId) {
-        _verificationId = verificationId;
-      },
-      timeout: const Duration(seconds: 60),
-    );
-  }
-
-  void _showOtpDialog() {
-    final otpController = TextEditingController();
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF121212),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Color(0xFF39FF14), width: 1),
-        ),
-        title: const Text(
-          'Verify Phone Number',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Enter the 6-digit code sent to your phone',
-              style: TextStyle(color: Colors.white70),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: otpController,
-              keyboardType: TextInputType.number,
-              maxLength: 6,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Color(0xFF39FF14),
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 8,
-              ),
-              decoration: InputDecoration(
-                hintText: '000000',
-                hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
-                filled: true,
-                fillColor: const Color(0xFF1E1E1E),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.white24),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.white24),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF39FF14), width: 2),
-                ),
-                counterStyle: const TextStyle(color: Colors.white54),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _cleanupPendingUser();
-            },
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (otpController.text.length == 6) {
-                Navigator.pop(context);
-                await _verifyOtp(otpController.text);
-              } else {
-                _showError('Please enter a 6-digit code');
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF39FF14),
-              foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Verify', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _verifyOtp(String smsCode) async {
-    if (_verificationId == null || _pendingUserCredential == null) {
-      _showError('Verification session expired. Please try again.');
-      return;
-    }
-
-    setState(() => _isOtpLoading = true);
-
-    try {
-      // Create phone credential
-      final phoneCredential = PhoneAuthProvider.credential(
-        verificationId: _verificationId!,
-        smsCode: smsCode,
-      );
-
-      await _linkPhoneCredential(phoneCredential);
-    } on FirebaseAuthException catch (e) {
-      setState(() => _isOtpLoading = false);
-      if (e.code == 'invalid-verification-code') {
-        _showError('Invalid code. Please try again.');
-        _showOtpDialog();
-      } else {
-        _showError('Verification failed: ${e.message}');
-        _cleanupPendingUser();
-      }
-    } catch (e) {
-      setState(() => _isOtpLoading = false);
-      _showError('An error occurred: $e');
-      _cleanupPendingUser();
-    }
-  }
-
-  Future<void> _linkPhoneCredential(PhoneAuthCredential phoneCredential) async {
-    try {
-      final user = _pendingUserCredential!.user!;
-
-      // Link phone credential to existing email/password account
-      await user.linkWithCredential(phoneCredential);
-
-      // NOW create Firestore document after successful verification
-      final uid = user.uid;
-      final phone = phoneNumberController.text.trim();
-      final email = emailController.text.trim();
-
-      final userData = {
-        'uid': uid,
-        'first_name': firstNameController.text.trim(),
-        'last_name': lastNameController.text.trim(),
-        'birthdate': birthDateController.text.trim(),
-        'residence': residenceController.text.trim(),
-        'phone_number': phone,
-        'email': email,
-        'image': _pendingImageUrl ?? '',
-        'coins': 0,
-        'isGroupLeader': _isGroupLeader,
-        'created_at': FieldValue.serverTimestamp(),
-      };
-
-      await _firestore.collection('user').doc(uid).set(userData);
-
-      setState(() => _isOtpLoading = false);
-
-      _showSuccess('Account created and verified successfully!');
-
-      // Clear pending data
-      _verificationId = null;
-      _pendingUserCredential = null;
-      _pendingImageUrl = null;
-
-      // Return user data to HomeScreen
-      Navigator.pop(context, userData);
-    } on FirebaseAuthException catch (e) {
-      setState(() => _isOtpLoading = false);
-      if (e.code == 'provider-already-linked') {
-        _showError('This phone number is already linked to another account.');
-      } else {
-        _showError('Failed to link phone: ${e.message}');
-      }
-      _cleanupPendingUser();
-    } catch (e) {
-      setState(() => _isOtpLoading = false);
-      _showError('Failed to complete registration: $e');
-      _cleanupPendingUser();
-    }
-  }
-
-  void _cleanupPendingUser() {
-    // Delete the pending user if verification failed
-    _pendingUserCredential?.user?.delete();
-    _verificationId = null;
-    _pendingUserCredential = null;
-    _pendingImageUrl = null;
-    setState(() => _isOtpLoading = false);
-  }
-
   FirebaseFirestore get _firestore => FirebaseFirestore.instanceFor(
         app: Firebase.app(),
         databaseId: 'default',
       );
 
   Future<void> _signInUser() async {
-    final phone = phoneNumberSignInController.text.trim();
+    final email = emailController.text.trim();
     final password = passwordController.text;
 
     try {
-      // Look up user by phone number to get their email
-      final phoneQuery = await _firestore.collection('user').where('phone_number', isEqualTo: phone).limit(1).get();
-      
-      if (phoneQuery.docs.isEmpty) {
-        _showError('No account found for this phone number.');
-        return;
-      }
-
-      final userData = phoneQuery.docs.first.data();
-      final email = userData['email'] as String?;
-      
-      if (email == null || email.isEmpty) {
-        _showError('Account email not found. Please contact support.');
-        return;
-      }
-
-      // Sign in with Firebase Auth using email/password
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      // Sign in with Firebase Auth using email/password directly
+      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+
+      // Fetch user data from Firestore
+      final uid = userCredential.user!.uid;
+      final userDoc = await _firestore.collection('user').doc(uid).get();
+      
+      if (!userDoc.exists) {
+        _showError('User data not found. Please contact support.');
+        return;
+      }
+
+      final userData = userDoc.data()!;
 
       _showSuccess('Signed in successfully.');
 
@@ -504,9 +324,11 @@ class _AuthScreenState extends State<AuthScreen> {
       Navigator.pop(context, userData);
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
-        _showError('No account found with this phone number.');
+        _showError('No account found with this email.');
       } else if (e.code == 'wrong-password') {
         _showError('Wrong password. Please try again.');
+      } else if (e.code == 'invalid-credential') {
+        _showError('Invalid email or password.');
       } else {
         _showError('Sign in failed: ${e.message}');
       }
@@ -621,16 +443,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _buildTextField(
-                  controller: birthDateController,
-                  label: "Birth Date (DD/MM/YYYY)",
-                  icon: Icons.calendar_today,
-                  keyboardType: TextInputType.datetime,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[0-9/]')),
-                    LengthLimitingTextInputFormatter(10),
-                  ],
-                ),
+                _buildDatePickerField(),
                 const SizedBox(height: 16),
                 _buildTextField(
                   controller: residenceController,
@@ -677,17 +490,13 @@ class _AuthScreenState extends State<AuthScreen> {
                 const SizedBox(height: 16),
               ],
 
-              // Phone number field (only for sign in)
+              // Email field (for sign in)
               if (isSignIn) ...[
                 _buildTextField(
-                  controller: phoneNumberSignInController,
-                  label: "Phone Number",
-                  icon: Icons.phone,
-                  keyboardType: TextInputType.phone,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(10),
-                  ],
+                  controller: emailController,
+                  label: "Email Address",
+                  icon: Icons.mail,
+                  keyboardType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 16),
               ],
@@ -769,6 +578,15 @@ class _AuthScreenState extends State<AuthScreen> {
                     ],
                   ),
                 ),
+                // Group Name field (only for Group Leaders)
+                if (_isGroupLeader) ...[
+                  const SizedBox(height: 16),
+                  _buildTextField(
+                    controller: groupNameController,
+                    label: 'Group Name (e.g., Elite Riders)',
+                    icon: Icons.groups,
+                  ),
+                ],
                 const SizedBox(height: 24),
               ],
 
@@ -817,14 +635,13 @@ class _AuthScreenState extends State<AuthScreen> {
                         setState(() {
                           isSignIn = !isSignIn;
                           _isGroupLeader = false;
-                          phoneNumberSignInController.clear();
+                          emailController.clear();
                           passwordController.clear();
                           firstNameController.clear();
                           lastNameController.clear();
                           birthDateController.clear();
                           residenceController.clear();
                           phoneNumberController.clear();
-                          emailController.clear();
                           _selectedImage = null;
                         });
                       },
@@ -1035,5 +852,265 @@ class _AuthScreenState extends State<AuthScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildDatePickerField() {
+    return GestureDetector(
+      onTap: () => _showCalendarPicker(),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF121212).withOpacity(0.7),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFF39FF14).withOpacity(0.3),
+            width: 1,
+          ),
+        ),
+        child: TextField(
+          controller: birthDateController,
+          enabled: false,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'Birth Date (DD/MM/YYYY)',
+            hintStyle: const TextStyle(color: Color(0xFFA1A1AA)),
+            prefixIcon: Icon(Icons.calendar_today, color: const Color(0xFF39FF14)),
+            suffixIcon: Icon(Icons.arrow_drop_down, color: Colors.white54),
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
+            disabledBorder: InputBorder.none,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showCalendarPicker() {
+    DateTime? selectedDay;
+    DateTime focusedDay = DateTime.now();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          // Generate year list from 1900 to current year
+          final currentYear = DateTime.now().year;
+          final years = List.generate(currentYear - 1900 + 1, (index) => currentYear - index);
+
+          return Dialog(
+            backgroundColor: const Color(0xFF121212),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: const Color(0xFF39FF14).withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Select Birth Date',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Year Picker Dropdown
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A1A1A),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: const Color(0xFF39FF14).withOpacity(0.3),
+                        ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int>(
+                          value: focusedDay.year,
+                          isExpanded: true,
+                          dropdownColor: const Color(0xFF1A1A1A),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF39FF14)),
+                          onChanged: (year) {
+                            if (year != null) {
+                              setDialogState(() {
+                                focusedDay = DateTime(year, focusedDay.month, 1);
+                              });
+                            }
+                          },
+                          items: years.map((year) {
+                            return DropdownMenuItem<int>(
+                              value: year,
+                              child: Text(
+                                year.toString(),
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: 320,
+                      child: TableCalendar(
+                        firstDay: DateTime(1900),
+                        lastDay: DateTime.now(),
+                        focusedDay: focusedDay,
+                        selectedDayPredicate: (day) => isSameDay(selectedDay, day),
+                        onDaySelected: (selected, focused) {
+                          setDialogState(() {
+                            selectedDay = selected;
+                            focusedDay = focused;
+                          });
+                        },
+                        onPageChanged: (focused) {
+                          setDialogState(() {
+                            focusedDay = focused;
+                          });
+                        },
+                        calendarFormat: CalendarFormat.month,
+                        availableCalendarFormats: const {
+                          CalendarFormat.month: 'Month',
+                        },
+                        calendarStyle: CalendarStyle(
+                          defaultTextStyle: const TextStyle(color: Colors.white),
+                          weekendTextStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                          outsideTextStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                          todayDecoration: BoxDecoration(
+                            color: const Color(0xFF39FF14).withOpacity(0.3),
+                            shape: BoxShape.circle,
+                          ),
+                          todayTextStyle: const TextStyle(color: Colors.white),
+                          selectedDecoration: const BoxDecoration(
+                            color: Color(0xFF39FF14),
+                            shape: BoxShape.circle,
+                          ),
+                          selectedTextStyle: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        headerStyle: HeaderStyle(
+                          titleTextStyle: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          formatButtonVisible: false,
+                          leftChevronIcon: const Icon(Icons.chevron_left, color: Colors.white),
+                          rightChevronIcon: const Icon(Icons.chevron_right, color: Colors.white),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1A1A1A),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        daysOfWeekStyle: DaysOfWeekStyle(
+                          weekdayStyle: TextStyle(
+                            color: const Color(0xFF39FF14).withOpacity(0.8),
+                            fontWeight: FontWeight.bold,
+                          ),
+                          weekendStyle: TextStyle(
+                            color: Colors.white.withOpacity(0.5),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (selectedDay != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF39FF14).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: const Color(0xFF39FF14).withOpacity(0.3),
+                          ),
+                        ),
+                        child: Text(
+                          'Selected: ${_formatDate(selectedDay!)}',
+                          style: const TextStyle(
+                            color: Color(0xFF39FF14),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white54,
+                              side: BorderSide(color: Colors.white.withOpacity(0.3)),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text('Cancel'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: selectedDay != null
+                                ? () {
+                                    setState(() {
+                                      birthDateController.text = _formatDate(selectedDay!);
+                                    });
+                                    Navigator.pop(context);
+                                  }
+                                : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF39FF14),
+                              foregroundColor: Colors.black,
+                              disabledBackgroundColor: Colors.grey.withOpacity(0.3),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              'Confirm',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final year = date.year.toString();
+    return '$day/$month/$year';
   }
 }

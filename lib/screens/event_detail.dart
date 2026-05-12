@@ -360,94 +360,42 @@ class EventDetailPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  ElevatedButton(
-                onPressed: () async {
-                  // Check authentication
-                  final user = FirebaseAuth.instance.currentUser;
-                  if (user == null) {
-                    // User not logged in - show login prompt
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please sign in to join this event'),
-                        duration: Duration(seconds: 3),
-                      ),
-                    );
-                    return;
-                  }
+                  // Real-time participation check
+                  StreamBuilder<QuerySnapshot>(
+                    stream: () {
+                      final user = FirebaseAuth.instance.currentUser;
+                      if (user == null) return null;
+                      return FirebaseFirestore.instanceFor(
+                        app: Firebase.app(),
+                        databaseId: 'default',
+                      )
+                          .collection('participation')
+                          .where('eventId', isEqualTo: event.id)
+                          .where('userId', isEqualTo: user.uid)
+                          .snapshots();
+                    }(),
+                    builder: (context, snapshot) {
+                      final user = FirebaseAuth.instance.currentUser;
 
-                  // User is logged in - create participation
-                  try {
-                    final participationRef = FirebaseFirestore.instanceFor(
-                      app: Firebase.app(),
-                      databaseId: 'default',
-                    ).collection('participation').doc();
-                    final participationId = participationRef.id;
+                      // Not logged in - show join button that prompts login
+                      if (user == null) {
+                        return _buildJoinButton(context, isLoggedIn: false);
+                      }
 
-                    await participationRef.set({
-                      'id': participationId,
-                      'userId': user.uid,
-                      'eventId': event.id,
-                      'registrationDate': FieldValue.serverTimestamp(),
-                      'ispresent': false,
-                      'joinedbycoins': false,
-                      'winnedCoins': 0,
-                      'status': 'Registered',
-                    });
+                      final isParticipating = snapshot.hasData && snapshot.data!.docs.isNotEmpty;
 
-                    // Show success message
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Successfully joined event!'),
-                        backgroundColor: Color(0xFF39FF14),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-
-                    // Navigate to Ticket Page
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => TicketPage(
-                          event: event,
-                          participationId: participationId,
-                        ),
-                      ),
-                    );
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error joining event: $e'),
-                        backgroundColor: Colors.red,
-                        duration: const Duration(seconds: 3),
-                      ),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF39FF14),
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                      if (isParticipating) {
+                        // Get the actual participation document ID from Firestore
+                        final participationDoc = snapshot.data!.docs.first;
+                        final participationId = participationDoc.id;
+                        // Already joined - show View My Ticket button
+                        return _buildViewTicketButton(context, participationId);
+                      } else {
+                        // Not joined - show Join button
+                        return _buildJoinButton(context, isLoggedIn: true, event: event);
+                      }
+                    },
                   ),
-                  elevation: 0,
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.bolt, size: 24),
-                    SizedBox(width: 8),
-                    Text(
-                      'JOIN RIDE',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         ),
@@ -456,8 +404,155 @@ class EventDetailPage extends StatelessWidget {
   ),
 );
   }
-}
 
+  Widget _buildJoinButton(BuildContext context, {required bool isLoggedIn, HubikeEvent? event}) {
+    return ElevatedButton(
+      onPressed: () async {
+        if (!isLoggedIn) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please sign in to join this event'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+          return;
+        }
+
+        try {
+          final firestore = FirebaseFirestore.instanceFor(
+            app: Firebase.app(),
+            databaseId: 'default',
+          );
+
+          final user = FirebaseAuth.instance.currentUser;
+          if (user == null) return;
+
+          final existingParticipation = await firestore
+              .collection('participation')
+              .where('eventId', isEqualTo: event!.id)
+              .where('userId', isEqualTo: user.uid)
+              .get();
+
+          if (existingParticipation.docs.isNotEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('You have already generated a ticket for this event!'),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 3),
+              ),
+            );
+            return;
+          }
+
+          final participationId = '${user.uid}_${event.id}';
+          final participationRef = firestore.collection('participation').doc(participationId);
+
+          await participationRef.set({
+            'id': participationId,
+            'userId': user.uid,
+            'eventId': event.id,
+            'registrationDate': FieldValue.serverTimestamp(),
+            'ispresent': false,
+            'joinedbycoins': false,
+            'winnedCoins': 0,
+            'status': 'Registered',
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Successfully joined event!'),
+              backgroundColor: Color(0xFF39FF14),
+              duration: Duration(seconds: 2),
+            ),
+          );
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TicketPage(
+                event: event,
+                participationId: participationId,
+              ),
+            ),
+          );
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error joining event: $e'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF39FF14),
+        foregroundColor: Colors.black,
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        elevation: 0,
+      ),
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.bolt, size: 24),
+          SizedBox(width: 8),
+          Text(
+            'JOIN RIDE',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildViewTicketButton(BuildContext context, String participationId) {
+    return ElevatedButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TicketPage(
+              event: event,
+              participationId: participationId,
+            ),
+          ),
+        );
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.cyan,
+        foregroundColor: Colors.black,
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        elevation: 0,
+      ),
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.qr_code, size: 24),
+          SizedBox(width: 8),
+          Text(
+            'VIEW MY TICKET',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  
 // Simple stat card widget
 Widget _buildStatCard(String label, String value, IconData icon) {
   return Expanded(
@@ -489,11 +584,10 @@ Widget _buildStatCard(String label, String value, IconData icon) {
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
     ),
   );
+}
 }

@@ -21,10 +21,10 @@ Normal Riders (isGroupLeader: false) can join events and buy from shops.
 
 Group Leaders (isGroupLeader: true) have access to hidden UI to scan QR tickets and manage their specific shop inventory. Products in the shop are linked via a leaderId to prevent coin fraud across different groups.
 
-## Phone Verification (OTP)
+**Split Database Architecture:** When a Group Leader signs up, their profile is saved in the standard users collection AND duplicated into an isolated group_leader collection using the same uid. This allows home.dart to read isGroupLeader from users for UI routing, while the backend uses group_leader for leader-specific operations.
 
-Standard Email/Password registration requires phone number verification.
+## Authentication
 
-We use FirebaseAuth.instance.verifyPhoneNumber to send a 6-digit SMS code.
+Standard Email/Password registration.
 
-The Firestore users document is only created AFTER the OTP is successfully verified.
+The Firestore users document is created immediately after successful Firebase Auth registration.

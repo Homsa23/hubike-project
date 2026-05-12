@@ -15,5 +15,6 @@
         "**/.pub-cache/**",
         "**/AppData/Local/Pub/Cache/**",
         "**/flutter/packages/**"
-    ]
+    ],
+    "cmake.ignoreCMakeListsMissing": true
 }

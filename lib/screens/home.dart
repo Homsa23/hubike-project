@@ -7,7 +7,7 @@ import 'inbox.dart';
 import 'events.dart';
 import 'shop.dart';
 import 'auth_screen.dart';
-import 'create_event_page.dart';
+import 'leader_dashboard.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -108,13 +108,21 @@ class HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Build the page list dynamically so sign-in state can be reflected whenever the home screen rebuilds.
+  // Build the page list dynamically based on user role
   List<Widget> get pages {
-    return [
-      const ShopPage(),
-      EventsPage(signedIn: signedIn, currentUser: currentUser),
-      const InboxPage(),
-    ];
+    if (isGroupLeader) {
+      return [
+        const Center(child: Text("Manage Shop Placeholder", style: TextStyle(color: Colors.white))),
+        const LeaderDashboardPage(),
+        const Center(child: Text("Leader Profile Placeholder", style: TextStyle(color: Colors.white))),
+      ];
+    } else {
+      return [
+        const ShopPage(),
+        EventsPage(signedIn: signedIn, currentUser: currentUser),
+        const InboxPage(),
+      ];
+    }
   }
 
   void onItemTapped(int index) {
@@ -137,69 +145,33 @@ class HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         elevation: 0,
         actions: [
-          // Group Leader: Create Event Button (only on Events page)
-          if (selectedIndex == 1 && isGroupLeader)
+          // Coins display (hidden for Group Leaders)
+          if (!isGroupLeader)
             Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CreateEventPage(),
-                    ),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF39FF14),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.add, color: Colors.black, size: 18),
-                      SizedBox(width: 4),
-                      Text(
-                        'NEW',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
+              padding: const EdgeInsets.only(right: 14.0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF39FF14).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFF39FF14), width: 1),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.monetization_on, color: Color(0xFF39FF14), size: 20),
+                    const SizedBox(width: 6),
+                    Text(
+                      signedIn ? '$coins' : '0',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          // Coins display
-          Padding(
-            padding: const EdgeInsets.only(right: 14.0),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF39FF14).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFF39FF14), width: 1),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.monetization_on, color: Color(0xFF39FF14), size: 20),
-                  const SizedBox(width: 6),
-                  Text(
-                    signedIn ? '$coins' : '0',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
@@ -283,19 +255,19 @@ class HomeScreenState extends State<HomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   
-                  // LEFT BUTTON (SHOP / GEAR)
+                  // LEFT BUTTON (SHOP / GEAR or SHOP MGT)
                   _buildSideNavButton(
                     icon: Icons.shopping_bag, 
-                    label: "GEAR", 
+                    label: isGroupLeader ? "SHOP MGT" : "GEAR", 
                     index: 0
                   ),
                   
                   const SizedBox(width: 50), // Empty space in the middle for the big button
                   
-                  // RIGHT BUTTON (INBOX / COMMS)
+                  // RIGHT BUTTON (INBOX / COMMS or PROFILE)
                   _buildSideNavButton(
-                    icon: Icons.inbox, 
-                    label: "COMMS", 
+                    icon: isGroupLeader ? Icons.person : Icons.inbox, 
+                    label: isGroupLeader ? "PROFILE" : "COMMS", 
                     index: 2
                   ),
                   

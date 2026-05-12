@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'event_model.dart';
+import 'live_map_page.dart';
 
 class TicketPage extends StatefulWidget {
   final HubikeEvent event;
@@ -246,57 +249,102 @@ class _TicketPageState extends State<TicketPage> {
 
             const SizedBox(height: 32),
 
-            // QR Code Section
-            Container(
-              padding: const EdgeInsets.all(30),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF39FF14).withOpacity(0.3),
-                    blurRadius: 20,
-                    spreadRadius: 5,
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  QrImageView(
-                    data: widget.participationId,
-                    version: QrVersions.auto,
-                    size: 200,
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                  ),
-                  const SizedBox(height: 20),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF050505),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      widget.participationId.substring(0, widget.participationId.length > 8 ? 8 : widget.participationId.length).toUpperCase(),
-                      style: const TextStyle(
-                        color: Color(0xFF39FF14),
-                        fontSize: 12,
-                        fontFamily: 'monospace',
-                        letterSpacing: 2,
+            // QR Code Section with Live Tracking
+            StreamBuilder<DocumentSnapshot>(
+              stream: FirebaseFirestore.instanceFor(
+                app: Firebase.app(),
+                databaseId: 'default',
+              ).collection('events').doc(widget.event.id).snapshots(),
+              builder: (context, snapshot) {
+                final bool isLive = snapshot.hasData && 
+                    snapshot.data!.exists && 
+                    ((snapshot.data!.data() as Map<String, dynamic>)['isLive'] as bool? ?? false);
+
+                return Container(
+                  padding: const EdgeInsets.all(30),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF39FF14).withOpacity(0.3),
+                        blurRadius: 20,
+                        spreadRadius: 5,
                       ),
-                    ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Show this to the Group Leader at the starting line to validate your presence.',
-                    style: TextStyle(
-                      color: Colors.black.withOpacity(0.7),
-                      fontSize: 12,
-                    ),
-                    textAlign: TextAlign.center,
+                  child: Column(
+                    children: [
+                      QrImageView(
+                        data: widget.participationId,
+                        version: QrVersions.auto,
+                        size: 200,
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                      ),
+                      const SizedBox(height: 20),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF050505),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          widget.participationId.substring(0, widget.participationId.length > 8 ? 8 : widget.participationId.length).toUpperCase(),
+                          style: const TextStyle(
+                            color: Color(0xFF39FF14),
+                            fontSize: 12,
+                            fontFamily: 'monospace',
+                            letterSpacing: 2,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Show this to the Group Leader at the starting line to validate your presence.',
+                        style: TextStyle(
+                          color: Colors.black.withOpacity(0.7),
+                          fontSize: 12,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      
+                      // Live Tracking Button (only show when event is live)
+                      if (isLive) ...[
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => LiveMapPage(
+                                    eventId: widget.event.id,
+                                    eventName: widget.event.eventName,
+                                    isGroupLeader: false,
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.location_on, size: 20),
+                            label: const Text('TRACK LIVE RIDE'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF39FF14),
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
 
             const SizedBox(height: 32),

@@ -5,31 +5,56 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:table_calendar/table_calendar.dart';
 
-class CreateEventPage extends StatefulWidget {
-  const CreateEventPage({super.key});
+class EditEventPage extends StatefulWidget {
+  final String eventId;
+  final Map<String, dynamic> eventData;
+
+  const EditEventPage({
+    super.key,
+    required this.eventId,
+    required this.eventData,
+  });
 
   @override
-  State<CreateEventPage> createState() => _CreateEventPageState();
+  State<EditEventPage> createState() => _EditEventPageState();
 }
 
-class _CreateEventPageState extends State<CreateEventPage> {
+class _EditEventPageState extends State<EditEventPage> {
   final _formKey = GlobalKey<FormState>();
   
-  final TextEditingController _eventNameController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _dateController = TextEditingController();
-  final TextEditingController _startingPointController = TextEditingController();
-  final TextEditingController _capacityController = TextEditingController();
-  final TextEditingController _priceController = TextEditingController();
-  final TextEditingController _priceInCoinsController = TextEditingController();
-  final TextEditingController _coinsToEarnController = TextEditingController();
-  final TextEditingController _officialPageController = TextEditingController();
+  late final TextEditingController _eventNameController;
+  late final TextEditingController _descriptionController;
+  late final TextEditingController _dateController;
+  late final TextEditingController _startingPointController;
+  late final TextEditingController _capacityController;
+  late final TextEditingController _priceController;
+  late final TextEditingController _priceInCoinsController;
+  late final TextEditingController _coinsToEarnController;
+  late final TextEditingController _officialPageController;
   
   String? _selectedCategory;
-  String _selectedLevel = 'Rider';
+  late String _selectedLevel;
   bool _isLoading = false;
 
   final List<String> _levels = ['Rider', 'Explorer', 'Elite', 'Pro'];
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize controllers with existing data
+    _eventNameController = TextEditingController(text: widget.eventData['eventName'] ?? '');
+    _descriptionController = TextEditingController(text: widget.eventData['description'] ?? '');
+    _dateController = TextEditingController(text: widget.eventData['date'] ?? '');
+    _startingPointController = TextEditingController(text: widget.eventData['startingPoint'] ?? '');
+    _capacityController = TextEditingController(text: widget.eventData['capacity']?.toString() ?? '');
+    _priceController = TextEditingController(text: widget.eventData['price']?.toString() ?? '');
+    _priceInCoinsController = TextEditingController(text: widget.eventData['priceInCoins']?.toString() ?? '');
+    _coinsToEarnController = TextEditingController(text: widget.eventData['coinsToEarn']?.toString() ?? '');
+    _officialPageController = TextEditingController(text: widget.eventData['officialPageLink'] ?? '');
+    
+    _selectedCategory = widget.eventData['categoryId'];
+    _selectedLevel = widget.eventData['level'] ?? 'Rider';
+  }
 
   @override
   void dispose() {
@@ -52,7 +77,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
 
   Stream<QuerySnapshot> get _categoriesStream => _firestore.collection('categories').snapshots();
 
-  Future<void> _createEvent() async {
+  Future<void> _updateEvent() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -60,7 +85,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        _showError('You must be logged in to create an event');
+        _showError('You must be logged in to update an event');
         return;
       }
 
@@ -76,20 +101,18 @@ class _CreateEventPageState extends State<CreateEventPage> {
         'categoryId': _selectedCategory,
         'level': _selectedLevel,
         'officialPageLink': _officialPageController.text.trim(),
-        'creatorId': user.uid,
-        'createdAt': FieldValue.serverTimestamp(),
-        'status': 'active',
+        'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      await _firestore.collection('events').add(eventData);
+      await _firestore.collection('events').doc(widget.eventId).update(eventData);
 
-      _showSuccess('Event created successfully!');
+      _showSuccess('Event updated successfully!');
       
       if (mounted) {
         Navigator.pop(context);
       }
     } catch (e) {
-      _showError('Failed to create event: $e');
+      _showError('Failed to update event: $e');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -129,7 +152,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Create Event',
+          'Edit Event',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -168,7 +191,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
                 child: Row(
                   children: [
                     Icon(
-                      Icons.add_circle,
+                      Icons.edit,
                       color: const Color(0xFF39FF14),
                       size: 40,
                     ),
@@ -178,7 +201,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Create New Ride',
+                            'Modify Ride',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 20,
@@ -187,7 +210,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            'Fill in the details to host your cycling event',
+                            'Update your cycling event details',
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.7),
                               fontSize: 12,
@@ -254,10 +277,8 @@ class _CreateEventPageState extends State<CreateEventPage> {
 
                   final categories = snapshot.data!.docs;
                   
-                  // Ensure we have a valid selected category
                   final categoryIds = categories.map((doc) => doc.id).toList();
                   if (_selectedCategory == null || !categoryIds.contains(_selectedCategory)) {
-                    // Use post-frame callback to avoid setState during build
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       if (mounted) {
                         setState(() {
@@ -354,12 +375,12 @@ class _CreateEventPageState extends State<CreateEventPage> {
               
               const SizedBox(height: 32),
               
-              // Create Button
+              // Update Button
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _createEvent,
+                  onPressed: _isLoading ? null : _updateEvent,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF39FF14),
                     foregroundColor: Colors.black,
@@ -372,7 +393,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.black)
                       : const Text(
-                          'CREATE EVENT',
+                          'SAVE CHANGES',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -621,7 +642,6 @@ class _CreateEventPageState extends State<CreateEventPage> {
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
-          // Generate year list from current year to next year
           final currentYear = DateTime.now().year;
           final years = [currentYear, currentYear + 1];
 
@@ -651,52 +671,59 @@ class _CreateEventPageState extends State<CreateEventPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Year Picker Dropdown
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1A1A1A),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: const Color(0xFF39FF14).withOpacity(0.3),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.calendar_today,
+                          color: Color(0xFF39FF14),
+                          size: 20,
                         ),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<int>(
-                          value: focusedDay.year,
-                          isExpanded: true,
-                          dropdownColor: const Color(0xFF1A1A1A),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF39FF14)),
-                          onChanged: (year) {
-                            if (year != null) {
-                              setDialogState(() {
-                                focusedDay = DateTime(year, focusedDay.month, 1);
-                              });
-                            }
-                          },
-                          items: years.map((year) {
-                            return DropdownMenuItem<int>(
-                              value: year,
-                              child: Text(
-                                year.toString(),
-                                style: const TextStyle(color: Colors.white),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1A1A1A),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: const Color(0xFF39FF14).withOpacity(0.3),
                               ),
-                            );
-                          }).toList(),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<int>(
+                                value: focusedDay.year,
+                                dropdownColor: const Color(0xFF1A1A1A),
+                                style: const TextStyle(color: Colors.white),
+                                icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                                onChanged: (year) {
+                                  if (year != null) {
+                                    setDialogState(() {
+                                      focusedDay = DateTime(year, focusedDay.month);
+                                    });
+                                  }
+                                },
+                                items: years.map((year) {
+                                  return DropdownMenuItem<int>(
+                                    value: year,
+                                    child: Text(
+                                      year.toString(),
+                                      style: const TextStyle(color: Colors.white),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     SizedBox(
+                      height: 280,
                       width: 320,
                       child: TableCalendar(
                         firstDay: DateTime.now(),
-                        lastDay: DateTime.now().add(const Duration(days: 365)),
+                        lastDay: DateTime(currentYear + 1, 12, 31),
                         focusedDay: focusedDay,
                         selectedDayPredicate: (day) => isSameDay(selectedDay, day),
                         onDaySelected: (selected, focused) {
