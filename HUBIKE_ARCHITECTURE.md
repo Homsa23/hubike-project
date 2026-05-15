@@ -28,3 +28,56 @@ Group Leaders (isGroupLeader: true) have access to hidden UI to scan QR tickets 
 Standard Email/Password registration.
 
 The Firestore users document is created immediately after successful Firebase Auth registration.
+
+## Shop Architecture
+
+### Product Data Model
+
+The shop uses a `products` collection in Firestore with the following schema:
+
+- `id` (string): Auto-generated document ID
+- `groupLeaderId` (string): Links product to specific Group Leader (marketplace scoping)
+- `name` (string): Product name
+- `brand` (string): Product brand
+- `category` (string): Product category
+- `condition` (string): Product condition (e.g., "New", "Used", "Refurbished")
+- `description` (string): Detailed product description
+- `price` (double): Price in Algerian Dinars (DZD)
+- `quantity` (int): Stock quantity available
+- `discountCoins` (int): Maximum Hubike Coins allowed for discount
+- `imageUrl` (string): Cloudinary hosted image URL
+- `createdAt` (timestamp): Auto-generated creation timestamp
+
+### Cloudinary Unsigned Upload Integration
+
+Product images are uploaded directly to Cloudinary using their unsigned upload endpoint:
+
+- **Upload URL**: `https://api.cloudinary.com/v1_1/dopk2m742/image/upload`
+- **Upload Preset**: `hubike_shop`
+- **Method**: POST multipart/form-data
+- **Required Fields**:
+  - `upload_preset`: Set to 'hubike_shop'
+  - `file`: Image file bytes/path
+- **Response**: JSON containing `secure_url` which is saved to Firestore
+
+The upload process:
+1. User selects image from gallery using `image_picker` package
+2. Image is uploaded to Cloudinary via `http` package
+3. Loading spinner shown during upload
+4. `secure_url` extracted from JSON response
+5. URL saved to Firestore product document
+
+### Group Leader Marketplace Scoping
+
+Each Group Leader only manages their own products through the `groupLeaderId` field:
+
+- **Query Pattern**: `products.where('groupLeaderId', isEqualTo: currentUser.uid)`
+- **Security**: Products are scoped to prevent cross-leader access
+- **Admin Dashboard**: Only shows products where `groupLeaderId` matches current user
+- **Marketplace Model**: Multiple independent shops managed by different Group Leaders
+
+### Shop UI Components
+
+- **Product Form** (`widgets/product_form.dart`): Add/Edit products with image upload
+- **Admin Shop Page** (`screens/admin_shop_page.dart`): StreamBuilder displaying leader's products with edit/delete actions
+- **Dark Theme**: All shop UI follows established neon green/cyan aesthetic on dark backgrounds

@@ -45,8 +45,10 @@ dependencies:
   google_sign_in: ^6.2.1
   mobile_scanner: ^6.0.2
   table_calendar: ^3.0.9
-  google_maps_flutter: ^2.5.3
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
   geolocator: ^10.1.1
+  http: ^1.2.0
 
 dev_dependencies:
   

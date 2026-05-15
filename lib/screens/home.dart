@@ -8,6 +8,7 @@ import 'events.dart';
 import 'shop.dart';
 import 'auth_screen.dart';
 import 'leader_dashboard.dart';
+import 'admin_shop_page.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -112,7 +113,7 @@ class HomeScreenState extends State<HomeScreen> {
   List<Widget> get pages {
     if (isGroupLeader) {
       return [
-        const Center(child: Text("Manage Shop Placeholder", style: TextStyle(color: Colors.white))),
+        const AdminShopPage(),
         const LeaderDashboardPage(),
         const Center(child: Text("Leader Profile Placeholder", style: TextStyle(color: Colors.white))),
       ];

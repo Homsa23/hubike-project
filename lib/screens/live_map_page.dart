@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -23,10 +24,11 @@ class LiveMapPage extends StatefulWidget {
 }
 
 class _LiveMapPageState extends State<LiveMapPage> {
-  GoogleMapController? _mapController;
-  StreamSubscription<Position>? _positionStreamSubscription;
+  final MapController mapController = MapController();
+  StreamSubscription<Position>? positionStream;
   bool _isBroadcasting = false;
-  Marker? _leaderMarker;
+  LatLng? _leaderPosition;
+  LatLng? currentLocation;
 
   FirebaseFirestore get _firestore => FirebaseFirestore.instanceFor(
         app: Firebase.app(),
@@ -43,7 +45,7 @@ class _LiveMapPageState extends State<LiveMapPage> {
 
   @override
   void dispose() {
-    _positionStreamSubscription?.cancel();
+    positionStream?.cancel();
     if (widget.isGroupLeader && _isBroadcasting) {
       _stopBroadcasting();
     }
@@ -85,50 +87,73 @@ class _LiveMapPageState extends State<LiveMapPage> {
   }
 
   Future<void> _startBroadcasting() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // Bulletproof permission checking
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Location permission required'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() {
       _isBroadcasting = true;
     });
 
-    // Update event document to isLive: true
-    await _firestore.collection('events').doc(widget.eventId).update({
-      'isLive': true,
+    // Update group_leader document with isBroadcasting: true
+    await _firestore.collection('group_leader').doc(user.uid).update({
+      'isBroadcasting': true,
     });
 
-    // Start location stream
-    _positionStreamSubscription = Geolocator.getPositionStream(
+    // Delivery-app style location stream
+    positionStream = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 10, // Update every 10 meters
+        distanceFilter: 10,
       ),
     ).listen((Position position) {
-      // Update currentLocation in events document
-      final GeoPoint currentLocation = GeoPoint(
-        position.latitude,
-        position.longitude,
-      );
-
-      _firestore.collection('events').doc(widget.eventId).update({
-        'currentLocation': currentLocation,
+      // 1. Update Map UI
+      setState(() {
+        currentLocation = LatLng(position.latitude, position.longitude);
+        _leaderPosition = currentLocation;
+      });
+      // 2. Move Camera
+      mapController.move(currentLocation!, 15.0);
+      // 3. Update Firestore
+      FirebaseFirestore.instance.collection('group_leader').doc(user.uid).update({
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+        'isBroadcasting': true,
       });
     });
   }
 
   Future<void> _stopBroadcasting() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
     setState(() {
       _isBroadcasting = false;
     });
 
     // Cancel location stream
-    _positionStreamSubscription?.cancel();
+    positionStream?.cancel();
 
-    // Update event document to isLive: false
-    await _firestore.collection('events').doc(widget.eventId).update({
-      'isLive': false,
+    // Update group_leader document with isBroadcasting: false
+    await _firestore.collection('group_leader').doc(user.uid).update({
+      'isBroadcasting': false,
     });
-  }
-
-  void _onMapCreated(GoogleMapController controller) {
-    _mapController = controller;
   }
 
   @override
@@ -153,16 +178,48 @@ class _LiveMapPageState extends State<LiveMapPage> {
       ),
       body: Stack(
         children: [
-          // Google Map
-          GoogleMap(
-            onMapCreated: _onMapCreated,
-            initialCameraPosition: const CameraPosition(
-              target: LatLng(37.7749, -122.4194), // Default to San Francisco
-              zoom: 15,
+          // FlutterMap with OpenStreetMap tiles
+          FlutterMap(
+            mapController: mapController,
+            options: MapOptions(
+              initialCenter: const LatLng(36.9060, 7.7615), // Default to Annaba, Algeria
+              initialZoom: 15,
             ),
-            myLocationEnabled: true,
-            myLocationButtonEnabled: true,
-            markers: _leaderMarker != null ? {_leaderMarker!} : {},
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.example.hubike',
+              ),
+              if (_leaderPosition != null)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: _leaderPosition!,
+                      width: 40,
+                      height: 40,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF39FF14),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF39FF14).withOpacity(0.5),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.directions_bike,
+                          color: Colors.black,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
           ),
 
           // Group Leader Broadcasting Controls
@@ -255,92 +312,95 @@ class _LiveMapPageState extends State<LiveMapPage> {
           if (!widget.isGroupLeader)
             StreamBuilder<DocumentSnapshot>(
               stream: _firestore.collection('events').doc(widget.eventId).snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData || !snapshot.data!.exists) {
+              builder: (context, eventSnapshot) {
+                if (!eventSnapshot.hasData || !eventSnapshot.data!.exists) {
                   return const SizedBox.shrink();
                 }
 
-                final eventData = snapshot.data!.data() as Map<String, dynamic>;
-                final bool isLive = eventData['isLive'] as bool? ?? false;
-                final GeoPoint? currentLocation = eventData['currentLocation'] as GeoPoint?;
+                final eventData = eventSnapshot.data!.data() as Map<String, dynamic>;
+                final String? creatorId = eventData['creatorId'] as String?;
 
-                if (isLive && currentLocation != null) {
-                  // Update marker position
-                  _leaderMarker = Marker(
-                    markerId: MarkerId('leader_${widget.eventId}'),
-                    position: LatLng(currentLocation.latitude, currentLocation.longitude),
-                    icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-                    infoWindow: InfoWindow(
-                      title: 'Group Leader',
-                      snippet: widget.eventName,
-                    ),
-                  );
+                if (creatorId == null) {
+                  return const SizedBox.shrink();
+                }
 
-                  // Center map on leader's position
-                  if (_mapController != null) {
-                    _mapController!.animateCamera(
-                      CameraUpdate.newCameraPosition(
-                        CameraPosition(
-                          target: LatLng(currentLocation.latitude, currentLocation.longitude),
-                          zoom: 16,
+                // Listen to group_leader document
+                return StreamBuilder<DocumentSnapshot>(
+                  stream: _firestore.collection('group_leader').doc(creatorId).snapshots(),
+                  builder: (context, leaderSnapshot) {
+                    if (!leaderSnapshot.hasData || !leaderSnapshot.data!.exists) {
+                      return const SizedBox.shrink();
+                    }
+
+                    final leaderData = leaderSnapshot.data!.data() as Map<String, dynamic>;
+                    final bool isBroadcasting = leaderData['isBroadcasting'] as bool? ?? false;
+                    final double? latitude = leaderData['latitude'] as double?;
+                    final double? longitude = leaderData['longitude'] as double?;
+
+                    if (isBroadcasting && latitude != null && longitude != null) {
+                      // Update leader position
+                      setState(() {
+                        _leaderPosition = LatLng(latitude, longitude);
+                      });
+
+                      // Center map on leader's position
+                      mapController.move(_leaderPosition!, 16);
+                    }
+
+                    return Positioned(
+                      top: 20,
+                      left: 20,
+                      right: 20,
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF121212),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isBroadcasting
+                                ? const Color(0xFF39FF14).withOpacity(0.5)
+                                : Colors.white.withOpacity(0.2),
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: isBroadcasting
+                                  ? const Color(0xFF39FF14).withOpacity(0.2)
+                                  : Colors.black.withOpacity(0.3),
+                              blurRadius: 20,
+                              spreadRadius: 5,
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isBroadcasting ? Icons.live_tv : Icons.location_off,
+                              color: isBroadcasting
+                                  ? const Color(0xFF39FF14)
+                                  : Colors.white.withOpacity(0.6),
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                isBroadcasting
+                                    ? 'Tracking Group Leader Live'
+                                    : 'Waiting for Leader to Start',
+                                style: TextStyle(
+                                  color: isBroadcasting
+                                      ? const Color(0xFF39FF14)
+                                      : Colors.white.withOpacity(0.6),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     );
-                  }
-                }
-
-                return Positioned(
-                  top: 20,
-                  left: 20,
-                  right: 20,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF121212),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isLive 
-                            ? const Color(0xFF39FF14).withOpacity(0.5)
-                            : Colors.white.withOpacity(0.2),
-                        width: 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: isLive
-                              ? const Color(0xFF39FF14).withOpacity(0.2)
-                              : Colors.black.withOpacity(0.3),
-                          blurRadius: 20,
-                          spreadRadius: 5,
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          isLive ? Icons.live_tv : Icons.location_off,
-                          color: isLive 
-                              ? const Color(0xFF39FF14)
-                              : Colors.white.withOpacity(0.6),
-                          size: 24,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            isLive 
-                                ? 'Tracking Group Leader Live'
-                                : 'Waiting for Leader to Start',
-                            style: TextStyle(
-                              color: isLive
-                                  ? const Color(0xFF39FF14)
-                                  : Colors.white.withOpacity(0.6),
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  },
                 );
               },
             ),
