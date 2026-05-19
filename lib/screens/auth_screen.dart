@@ -395,25 +395,25 @@ class _AuthScreenState extends State<AuthScreen> {
 
               // Title
               Text(
-                isSignIn ? "Welcome Back!" : "Join HUBIKE",
+                isSignIn ? "Welcome Back" : "Join HUBIKE",
                 style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 36,
+                  fontWeight: FontWeight.w900,
                   color: Colors.white,
-                  letterSpacing: 1.0,
+                  letterSpacing: 1.2,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 isSignIn
-                    ? "Sign in to your account"
+                    ? "Sign in to continue your journey"
                     : "Create your cycling profile",
                 style: const TextStyle(
-                  fontSize: 14,
+                  fontSize: 16,
                   color: Color(0xFFA1A1AA),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 40),
 
               // Name fields (only for sign up)
               if (!isSignIn) ...[
@@ -442,15 +442,15 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 _buildDatePickerField(),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 _buildTextField(
                   controller: residenceController,
                   label: "Residence (Address)",
                   icon: Icons.home,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 _buildTextField(
                   controller: phoneNumberController,
                   label: "Phone Number",
@@ -461,7 +461,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     LengthLimitingTextInputFormatter(10),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 // Profile Picture
                 Container(
                   decoration: BoxDecoration(
@@ -487,7 +487,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     onTap: _pickImage,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
               ],
 
               // Email field (for sign in)
@@ -498,7 +498,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   icon: Icons.mail,
                   keyboardType: TextInputType.emailAddress,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
               ],
 
               // Email field (only for sign up)
@@ -509,7 +509,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   icon: Icons.mail,
                   keyboardType: TextInputType.emailAddress,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
               ],
 
               // Password field
@@ -519,7 +519,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 icon: Icons.lock,
                 isPassword: true,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
               // Group Leader Toggle (only for sign up)
               if (!isSignIn) ...[
@@ -580,7 +580,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
                 // Group Name field (only for Group Leaders)
                 if (_isGroupLeader) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   _buildTextField(
                     controller: groupNameController,
                     label: 'Group Name (e.g., Elite Riders)',
@@ -591,30 +591,41 @@ class _AuthScreenState extends State<AuthScreen> {
               ],
 
               // Sign In / Sign Up Button
-              SizedBox(
+              Container(
                 width: double.infinity,
-                height: 52,
+                height: 56,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF39FF14).withOpacity(0.25),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
                 child: ElevatedButton(
                   onPressed: _submitForm,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF39FF14),
                     foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     elevation: 0,
                   ),
                   child: Text(
                     isSignIn ? "SIGN IN" : "CREATE ACCOUNT",
                     style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.0,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.5,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
               // Toggle Sign In / Sign Up
               Center(
@@ -827,27 +838,38 @@ class _AuthScreenState extends State<AuthScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF121212).withOpacity(0.7),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFF39FF14).withOpacity(0.3),
-          width: 1,
-        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: TextField(
         controller: controller,
         obscureText: isPassword,
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
-        style: const TextStyle(color: Colors.white),
+        style: const TextStyle(color: Colors.white, fontSize: 16),
         decoration: InputDecoration(
+          filled: true,
+          fillColor: const Color(0xFF1E1E1E),
           hintText: label,
           hintStyle: const TextStyle(color: Color(0xFFA1A1AA)),
-          prefixIcon: Icon(icon, color: const Color(0xFF39FF14)),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 14,
+          prefixIcon: Icon(icon, color: const Color(0xFF39FF14).withOpacity(0.8)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.white.withOpacity(0.05), width: 1),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFF39FF14), width: 2),
           ),
         ),
       ),

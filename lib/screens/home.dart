@@ -5,10 +5,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'inbox.dart';
 import 'events.dart';
-import 'shop.dart';
+import 'gear_tab.dart';
 import 'auth_screen.dart';
 import 'leader_dashboard.dart';
 import 'admin_shop_page.dart';
+import 'leader_profile.dart';
+import 'rider_profile.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -74,26 +76,15 @@ class HomeScreenState extends State<HomeScreen> {
   void _showProfileMenu() {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      // Show logout option for logged in users
-      showModalBottomSheet(
-        context: context,
-        backgroundColor: const Color(0xFF121212),
-        builder: (context) => SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.logout, color: Colors.red),
-                title: const Text('Sign Out', style: TextStyle(color: Colors.red)),
-                onTap: () {
-                  Navigator.pop(context);
-                  _signOut();
-                },
-              ),
-            ],
-          ),
-        ),
-      );
+      // Show Rider Profile Page for logged in users
+      Navigator.push<bool>(
+        context,
+        MaterialPageRoute(builder: (context) => const RiderProfilePage()),
+      ).then((didSignOut) {
+        if (didSignOut == true) {
+          _signOut();
+        }
+      });
     } else {
       // Show login screen for logged out users
       Navigator.push<Map<String, dynamic>>(
@@ -115,11 +106,11 @@ class HomeScreenState extends State<HomeScreen> {
       return [
         const AdminShopPage(),
         const LeaderDashboardPage(),
-        const Center(child: Text("Leader Profile Placeholder", style: TextStyle(color: Colors.white))),
+        const LeaderProfilePage(),
       ];
     } else {
       return [
-        const ShopPage(),
+        GearTab(groupLeaderId: (currentUser?['groupLeaderId'] as String?) ?? ''),
         EventsPage(signedIn: signedIn, currentUser: currentUser),
         const InboxPage(),
       ];

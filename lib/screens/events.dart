@@ -118,11 +118,11 @@ class _EventsPageState extends State<EventsPage> {
                           ),
                         ),
                         Align(
-                          alignment: Alignment.centerLeft,
+                          alignment: Alignment.bottomLeft,
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                            padding: const EdgeInsets.all(24.0),
                             child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
@@ -135,15 +135,19 @@ class _EventsPageState extends State<EventsPage> {
                                     letterSpacing: 1.5,
                                   ),
                                 ),
-                                const SizedBox(height: 200), // Adjusted spacing to fit the gradient
-                                Text(
-                                  // Dynamic Description!
-                                  selectedCategory?.description ?? "Check out every ride happening around Annaba.",
-                                  textAlign: TextAlign.left,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white, 
-                                    height: 1.5,
+                                const SizedBox(height: 12),
+                                Flexible(
+                                  child: Text(
+                                    // Dynamic Description!
+                                    selectedCategory?.description ?? "Check out every ride happening around Annaba.",
+                                    textAlign: TextAlign.left,
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white70, 
+                                      height: 1.5,
+                                    ),
                                   ),
                                 ),
                               ],
