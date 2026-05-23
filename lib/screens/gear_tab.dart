@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'product_model.dart'; // Ensure this path correctly resolves to your Product model
+import 'product_detail.dart';
+import 'cart_state.dart';
+import 'cart_screen.dart';
+import 'order_form_screen.dart';
 
 class GearTab extends StatelessWidget {
   final String groupLeaderId;
@@ -23,12 +28,55 @@ class GearTab extends StatelessWidget {
           ),
         ),
         centerTitle: true,
+        actions: [
+          ListenableBuilder(
+            listenable: cartState,
+            builder: (context, _) {
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.shopping_cart, color: Color(0xFF39FF14)),
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const CartScreen()));
+                    },
+                  ),
+                  if (cartState.items.isNotEmpty)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '${cartState.items.length}',
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('product')
-            .where('groupLeaderId', isEqualTo: groupLeaderId)
-            .snapshots(),
+        stream: groupLeaderId.isNotEmpty
+            ? FirebaseFirestore.instanceFor(
+                  app: Firebase.app(),
+                  databaseId: 'default',
+                )
+                .collection('product')
+                .where('groupLeaderId', isEqualTo: groupLeaderId)
+                .snapshots()
+            : FirebaseFirestore.instanceFor(
+                  app: Firebase.app(),
+                  databaseId: 'default',
+                ).collection('product').snapshots(),
         builder: (context, snapshot) {
           // Loading State
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -91,7 +139,7 @@ class GearTab extends StatelessWidget {
               crossAxisCount: 2,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
-              childAspectRatio: 0.65, // Adjust ratio as needed
+              childAspectRatio: 0.6, // Adjusted to 0.6 to prevent bottom overflow
             ),
             itemCount: docs.length,
             itemBuilder: (context, index) {
@@ -106,8 +154,17 @@ class GearTab extends StatelessWidget {
   }
 
   Widget _buildProductCard(BuildContext context, Product product) {
-    return Container(
-      decoration: BoxDecoration(
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailPage(product: product),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E), // Slightly lighter dark for card
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
@@ -204,34 +261,62 @@ class GearTab extends StatelessWidget {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const Spacer(),
-                    // Action Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 36,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          // TODO: Implement cart/details logic later
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          foregroundColor: const Color(0xFF39FF14),
-                          elevation: 0,
-                          side: const BorderSide(
-                            color: Color(0xFF39FF14),
-                            width: 1,
+                    const SizedBox(height: 8),
+                    // Action Buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 32,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                cartState.addProduct(product);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Added to cart!'),
+                                    backgroundColor: Color(0xFF39FF14),
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                foregroundColor: const Color(0xFF39FF14),
+                                elevation: 0,
+                                side: const BorderSide(color: Color(0xFF39FF14), width: 1),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: EdgeInsets.zero,
+                              ),
+                              child: const Icon(Icons.add_shopping_cart, size: 16),
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: SizedBox(
+                            height: 32,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => OrderFormScreen(products: [product], fromCart: false),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF39FF14),
+                                foregroundColor: Colors.black,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: EdgeInsets.zero,
+                              ),
+                              child: const Text('Buy Equipment', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                            ),
                           ),
-                          padding: EdgeInsets.zero,
                         ),
-                        icon: const Icon(Icons.add_shopping_cart, size: 16),
-                        label: const Text(
-                          'Add',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                      ),
+                      ],
                     ),
                   ],
                 ),
@@ -240,7 +325,7 @@ class GearTab extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 
   // Graceful handling for missing or broken image URLs

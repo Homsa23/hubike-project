@@ -35,8 +35,19 @@ class _EditEventPageState extends State<EditEventPage> {
   String? _selectedCategory;
   late String _selectedLevel;
   bool _isLoading = false;
+  DateTime? _selectedDateTime;
 
   final List<String> _levels = ['Rider', 'Explorer', 'Elite', 'Pro'];
+
+  String _formatDateHelper(dynamic dateData) {
+    if (dateData == null) return '';
+    if (dateData is Timestamp) {
+      final date = dateData.toDate();
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return '${months[date.month - 1]} ${date.day}, ${date.year} - ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    }
+    return dateData.toString();
+  }
 
   @override
   void initState() {
@@ -44,7 +55,7 @@ class _EditEventPageState extends State<EditEventPage> {
     // Initialize controllers with existing data
     _eventNameController = TextEditingController(text: widget.eventData['eventName'] ?? '');
     _descriptionController = TextEditingController(text: widget.eventData['description'] ?? '');
-    _dateController = TextEditingController(text: widget.eventData['date'] ?? '');
+    _dateController = TextEditingController(text: _formatDateHelper(widget.eventData['date']));
     _startingPointController = TextEditingController(text: widget.eventData['startingPoint'] ?? '');
     _capacityController = TextEditingController(text: widget.eventData['capacity']?.toString() ?? '');
     _priceController = TextEditingController(text: widget.eventData['price']?.toString() ?? '');
@@ -92,7 +103,7 @@ class _EditEventPageState extends State<EditEventPage> {
       final eventData = {
         'eventName': _eventNameController.text.trim(),
         'description': _descriptionController.text.trim(),
-        'date': _dateController.text.trim(),
+        'date': _selectedDateTime != null ? Timestamp.fromDate(_selectedDateTime!) : widget.eventData['date'],
         'startingPoint': _startingPointController.text.trim(),
         'capacity': int.tryParse(_capacityController.text) ?? 0,
         'price': int.tryParse(_priceController.text) ?? 0,
@@ -825,11 +836,24 @@ class _EditEventPageState extends State<EditEventPage> {
                         Expanded(
                           child: ElevatedButton(
                             onPressed: selectedDay != null
-                                ? () {
-                                    setState(() {
-                                      _dateController.text = _formatDate(selectedDay!);
-                                    });
+                                ? () async {
                                     Navigator.pop(context);
+                                    final time = await showTimePicker(
+                                      context: context,
+                                      initialTime: TimeOfDay.now(),
+                                    );
+                                    if (time != null) {
+                                      setState(() {
+                                        _selectedDateTime = DateTime(
+                                          selectedDay!.year,
+                                          selectedDay!.month,
+                                          selectedDay!.day,
+                                          time.hour,
+                                          time.minute,
+                                        );
+                                        _dateController.text = _formatFullDateTime(_selectedDateTime!);
+                                      });
+                                    }
                                   }
                                 : null,
                             style: ElevatedButton.styleFrom(
@@ -864,5 +888,15 @@ class _EditEventPageState extends State<EditEventPage> {
     final month = date.month.toString().padLeft(2, '0');
     final year = date.year.toString();
     return '$day/$month/$year';
+  }
+
+  String _formatFullDateTime(DateTime date) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final monthStr = months[date.month - 1];
+    final dayStr = date.day.toString();
+    final yearStr = date.year.toString();
+    final hourStr = date.hour.toString().padLeft(2, '0');
+    final minuteStr = date.minute.toString().padLeft(2, '0');
+    return '$monthStr $dayStr, $yearStr - $hourStr:$minuteStr';
   }
 }

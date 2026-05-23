@@ -8,6 +8,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -224,15 +226,29 @@ class _AuthScreenState extends State<AuthScreen> {
 
       final uid = userCredential.user!.uid;
 
-      // Upload image to Firebase Storage if selected
+      // Upload image to Cloudinary if selected
       String? imageUrl;
       if (_selectedImage != null) {
         try {
-          final storageRef = FirebaseStorage.instance.ref().child('profile_images/$uid.jpg');
-          await storageRef.putFile(_selectedImage!);
-          imageUrl = await storageRef.getDownloadURL();
+          final request = http.MultipartRequest(
+            'POST',
+            Uri.parse('https://api.cloudinary.com/v1_1/dopk2m742/image/upload'),
+          );
+
+          request.fields['upload_preset'] = 'hubike_shop';
+          request.files.add(await http.MultipartFile.fromPath('file', _selectedImage!.path));
+
+          final response = await request.send();
+
+          if (response.statusCode == 200) {
+            final responseData = await response.stream.bytesToString();
+            final jsonData = json.decode(responseData);
+            imageUrl = jsonData['secure_url'];
+          } else {
+            throw Exception('Cloudinary upload failed with status ${response.statusCode}');
+          }
         } catch (e) {
-          debugPrint('Failed to upload image: $e');
+          debugPrint('Failed to upload image to Cloudinary: $e');
           imageUrl = null;
         }
       }

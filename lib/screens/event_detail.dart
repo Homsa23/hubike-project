@@ -129,7 +129,7 @@ class EventDetailPage extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
                     children: [
-                      _buildStatCard('DATE', event.date, Icons.calendar_today),
+                      _buildStatCard('DATE', _formatFullDateTime(event.date), Icons.calendar_today),
                       const SizedBox(width: 10),
                       _buildStatCard('LEVEL', event.level.toUpperCase(), Icons.fitness_center),
                       const SizedBox(width: 10),
@@ -391,6 +391,19 @@ class EventDetailPage extends StatelessWidget {
                         // Already joined - show View My Ticket button
                         return _buildViewTicketButton(context, participationId);
                       } else {
+                        // Calculate availability
+                        bool isOngoing = DateTime.now().isAfter(event.date) || DateTime.now().isAtSameMomentAs(event.date);
+                        bool isFull = event.currentParticipants >= event.capacity;
+                        bool isTooLate = DateTime.now().isAfter(event.date.subtract(const Duration(hours: 1)));
+                        
+                        if (isOngoing) {
+                          return _buildDisabledJoinButton('EVENT ONGOING');
+                        } else if (isFull) {
+                          return _buildDisabledJoinButton('EVENT FULL');
+                        } else if (isTooLate || event.status != 'Available') {
+                          return _buildDisabledJoinButton('UNAVAILABLE');
+                        }
+
                         // Not joined - show Join button
                         return _buildJoinButton(context, isLoggedIn: true, event: event);
                       }
@@ -590,4 +603,44 @@ Widget _buildStatCard(String label, String value, IconData icon) {
     ),
   );
 }
+
+  Widget _buildDisabledJoinButton(String reason) {
+    return ElevatedButton(
+      onPressed: null,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.grey.withOpacity(0.3),
+        foregroundColor: Colors.white54,
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        elevation: 0,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.block, size: 24),
+          const SizedBox(width: 8),
+          Text(
+            reason,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatFullDateTime(DateTime date) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final monthStr = months[date.month - 1];
+    final dayStr = date.day.toString();
+    final yearStr = date.year.toString();
+    final hourStr = date.hour.toString().padLeft(2, '0');
+    final minuteStr = date.minute.toString().padLeft(2, '0');
+    return '$monthStr $dayStr, $yearStr - $hourStr:$minuteStr';
+  }
 }

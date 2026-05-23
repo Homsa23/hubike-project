@@ -80,11 +80,31 @@ class _QRScannerPageState extends State<QRScannerPage> {
       final String userId = participationData['userId'] as String? ?? '';
       final String eventId = participationData['eventId'] as String? ?? '';
 
-      // Fetch event reward amount
+      // Fetch event data and check if it's ongoing
       final eventDoc = await _firestore.collection('events').doc(eventId).get();
-      final int rewardAmount = eventDoc.exists 
-          ? (eventDoc.data() as Map<String, dynamic>)['coinsToEarn'] as int? ?? 0
-          : 0;
+      if (!eventDoc.exists) {
+        _showResult(
+          success: false,
+          title: 'Event Not Found',
+          message: 'The event for this ticket no longer exists.',
+        );
+        return;
+      }
+
+      final eventDataMap = eventDoc.data() as Map<String, dynamic>;
+      final eventDate = (eventDataMap['date'] as Timestamp).toDate();
+      final isOngoing = DateTime.now().isAfter(eventDate) || DateTime.now().isAtSameMomentAs(eventDate);
+
+      if (!isOngoing) {
+        _showResult(
+          success: false,
+          title: 'Not Allowed',
+          message: 'You can only scan tickets and assign coins while the event is ongoing.',
+        );
+        return;
+      }
+
+      final int rewardAmount = eventDataMap['coinsToEarn'] as int? ?? 0;
 
       // Create a WriteBatch for atomic operations
       final batch = _firestore.batch();

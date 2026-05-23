@@ -77,12 +77,15 @@ class HomeScreenState extends State<HomeScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       // Show Rider Profile Page for logged in users
-      Navigator.push<bool>(
+      Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const RiderProfilePage()),
-      ).then((didSignOut) {
-        if (didSignOut == true) {
+      ).then((result) {
+        if (result == true) {
           _signOut();
+        } else {
+          // Reload user data in case they edited their profile
+          _loadCurrentUser();
         }
       });
     } else {
@@ -184,10 +187,22 @@ class HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.person,
-                color: Color(0xFF39FF14),
-                size: 20,
+              child: ClipOval(
+                child: (currentUser != null && currentUser!['image'] != null && currentUser!['image'].toString().isNotEmpty)
+                    ? Image.network(
+                        currentUser!['image'].toString(),
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => const Icon(
+                          Icons.person,
+                          color: Color(0xFF39FF14),
+                          size: 20,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.person,
+                        color: Color(0xFF39FF14),
+                        size: 20,
+                      ),
               ),
             ),
           ),

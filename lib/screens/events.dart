@@ -21,6 +21,31 @@ class _EventsPageState extends State<EventsPage> {
   HubikeCategory? selectedCategory; 
 
   @override
+  void initState() {
+    super.initState();
+    deleteForgottenEvents();
+  }
+
+  Future<void> deleteForgottenEvents() async {
+    try {
+      final firestore = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'default');
+      final fiveHoursAgo = Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 5)));
+      
+      final snapshot = await firestore
+          .collection('events')
+          .where('date', isLessThanOrEqualTo: fiveHoursAgo)
+          .get();
+
+      for (var doc in snapshot.docs) {
+        await doc.reference.delete();
+      }
+      debugPrint('Cleaned up ${snapshot.docs.length} forgotten events.');
+    } catch (e) {
+      debugPrint('Failed to delete forgotten events: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF050505),
@@ -177,11 +202,21 @@ class _EventsPageState extends State<EventsPage> {
                   // 3. BOTTOM PIPELINE: LIVE EVENTS
                   // ==========================================
                   StreamBuilder<QuerySnapshot>(
-                    stream: selectedCategory == null 
-                      ? FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'default').collection('events').snapshots() 
-                      : FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'default').collection('events')
-                          .where('categoryId', isEqualTo: selectedCategory!.id) 
-                          .snapshots(),
+                    stream: (() {
+                      final firestore = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'default');
+                      final fiveHoursAgo = Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 5)));
+                      
+                      if (selectedCategory == null) {
+                        return firestore.collection('events')
+                            .where('date', isGreaterThan: fiveHoursAgo)
+                            .snapshots();
+                      } else {
+                        return firestore.collection('events')
+                            .where('categoryId', isEqualTo: selectedCategory!.id)
+                            .where('date', isGreaterThan: fiveHoursAgo)
+                            .snapshots();
+                      }
+                    })(),
                     builder: (context, snapshot) {
                       
                       if (snapshot.connectionState == ConnectionState.waiting) {
@@ -213,6 +248,18 @@ class _EventsPageState extends State<EventsPage> {
                       List<HubikeEvent> liveEvents = snapshot.data!.docs.map((doc) {
                         return HubikeEvent.fromFirestore(doc);
                       }).toList();
+
+                      if (liveEvents.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.all(40.0),
+                          child: Center(
+                            child: Text(
+                              "No upcoming ${(selectedCategory?.name ?? "Rides").toUpperCase()}.", 
+                              style: const TextStyle(color: Colors.white54, fontSize: 16),
+                            ),
+                          ),
+                        );
+                      }
 
                       return Column(
                         children: liveEvents.map((event) {
@@ -297,20 +344,32 @@ class _EventsPageState extends State<EventsPage> {
   }
 
   Widget _buildEventCard(HubikeEvent event) {
+    bool isOngoing = DateTime.now().isAfter(event.date) || DateTime.now().isAtSameMomentAs(event.date);
+    bool isFull = event.currentParticipants >= event.capacity;
+    bool isTooLate = DateTime.now().isAfter(event.date.subtract(const Duration(hours: 1)));
+    
+    String statusDisplay = 'Available';
+    Color statusColor = const Color(0xFF39FF14); // Green
+    
+    if (isOngoing) {
+      statusDisplay = 'Ongoing';
+      statusColor = Colors.orange;
+    } else if (isTooLate || isFull || event.status != 'Available') {
+      statusDisplay = 'Unavailable';
+      statusColor = Colors.red;
+    }
+
+    // Formatting date
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final monthStr = months[event.date.month - 1];
+    final dayStr = event.date.day.toString();
+    final yearStr = event.date.year.toString();
+    final hourStr = event.date.hour.toString().padLeft(2, '0');
+    final minuteStr = event.date.minute.toString().padLeft(2, '0');
+    final formattedDate = '$monthStr $dayStr, $yearStr - $hourStr:$minuteStr';
+
     return GestureDetector(
       onTap: () {
-        // TEMPORARILY DISABLED: Sign-in check moved to Join button
-        // TODO: Re-enable later when payment/join flow is ready
-        // if (!widget.signedIn) {
-        //   ScaffoldMessenger.of(context).showSnackBar(
-        //     const SnackBar(
-        //       content: Text('You must sign in first.'),
-        //       duration: Duration(seconds: 3),
-        //     ),
-        //   );
-        //   return;
-        // }
-
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -319,12 +378,12 @@ class _EventsPageState extends State<EventsPage> {
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16.0),
-        padding: const EdgeInsets.all(16.0),
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.grey.shade900,
+          color: const Color(0xFF121212),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white12, width: 1), 
+          border: Border.all(color: Colors.white.withAlpha(20), width: 1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -336,10 +395,15 @@ class _EventsPageState extends State<EventsPage> {
                   event.eventName,
                   style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
                 ),
-                Text(
-                  "+${event.coinsToEarn} Coins",
-                  style: const TextStyle(color: Color(0xFF39FF14), fontWeight: FontWeight.bold),
-                ),
+                statusDisplay == 'Available'
+                  ? Text(
+                      "+${event.coinsToEarn} Coins",
+                      style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
+                    )
+                  : Text(
+                      statusDisplay,
+                      style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
+                    ),
               ],
             ),
             const SizedBox(height: 8),
@@ -347,7 +411,7 @@ class _EventsPageState extends State<EventsPage> {
               children: [
                 const Icon(Icons.calendar_month, color: Colors.white54, size: 16),
                 const SizedBox(width: 6),
-                Text(event.date, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                Text(formattedDate, style: const TextStyle(color: Colors.white54, fontSize: 12)),
                 const SizedBox(width: 16),
                 const Icon(Icons.location_on, color: Colors.white54, size: 16),
                 const SizedBox(width: 6),

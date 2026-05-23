@@ -28,6 +28,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
   String? _selectedCategory;
   String _selectedLevel = 'Rider';
   bool _isLoading = false;
+  DateTime? _selectedDateTime;
 
   final List<String> _levels = ['Rider', 'Explorer', 'Elite', 'Pro'];
 
@@ -67,9 +68,10 @@ class _CreateEventPageState extends State<CreateEventPage> {
       final eventData = {
         'eventName': _eventNameController.text.trim(),
         'description': _descriptionController.text.trim(),
-        'date': _dateController.text.trim(),
+        'date': _selectedDateTime != null ? Timestamp.fromDate(_selectedDateTime!) : FieldValue.serverTimestamp(),
         'startingPoint': _startingPointController.text.trim(),
         'capacity': int.tryParse(_capacityController.text) ?? 0,
+        'currentParticipants': 0,
         'price': int.tryParse(_priceController.text) ?? 0,
         'priceInCoins': int.tryParse(_priceInCoinsController.text) ?? 0,
         'coinsToEarn': int.tryParse(_coinsToEarnController.text) ?? 0,
@@ -78,7 +80,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
         'officialPageLink': _officialPageController.text.trim(),
         'creatorId': user.uid,
         'createdAt': FieldValue.serverTimestamp(),
-        'status': 'active',
+        'status': 'Available',
       };
 
       await _firestore.collection('events').add(eventData);
@@ -798,11 +800,24 @@ class _CreateEventPageState extends State<CreateEventPage> {
                         Expanded(
                           child: ElevatedButton(
                             onPressed: selectedDay != null
-                                ? () {
-                                    setState(() {
-                                      _dateController.text = _formatDate(selectedDay!);
-                                    });
+                                ? () async {
                                     Navigator.pop(context);
+                                    final time = await showTimePicker(
+                                      context: context,
+                                      initialTime: TimeOfDay.now(),
+                                    );
+                                    if (time != null) {
+                                      setState(() {
+                                        _selectedDateTime = DateTime(
+                                          selectedDay!.year,
+                                          selectedDay!.month,
+                                          selectedDay!.day,
+                                          time.hour,
+                                          time.minute,
+                                        );
+                                        _dateController.text = _formatFullDateTime(_selectedDateTime!);
+                                      });
+                                    }
                                   }
                                 : null,
                             style: ElevatedButton.styleFrom(
@@ -837,5 +852,15 @@ class _CreateEventPageState extends State<CreateEventPage> {
     final month = date.month.toString().padLeft(2, '0');
     final year = date.year.toString();
     return '$day/$month/$year';
+  }
+
+  String _formatFullDateTime(DateTime date) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final monthStr = months[date.month - 1];
+    final dayStr = date.day.toString();
+    final yearStr = date.year.toString();
+    final hourStr = date.hour.toString().padLeft(2, '0');
+    final minuteStr = date.minute.toString().padLeft(2, '0');
+    return '$monthStr $dayStr, $yearStr - $hourStr:$minuteStr';
   }
 }

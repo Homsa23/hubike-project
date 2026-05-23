@@ -41,37 +41,14 @@ class _TicketPageState extends State<TicketPage> {
   }
 
   void _updateCountdown() {
-    final eventDate = _parseEventDate(widget.event.date);
-    if (eventDate != null) {
-      final now = DateTime.now();
-      final remaining = eventDate.difference(now);
-      if (mounted) {
-        setState(() {
-          _timeRemaining = remaining.isNegative ? Duration.zero : remaining;
-        });
-      }
+    final eventDate = widget.event.date;
+    final now = DateTime.now();
+    final remaining = eventDate.difference(now);
+    if (mounted) {
+      setState(() {
+        _timeRemaining = remaining.isNegative ? Duration.zero : remaining;
+      });
     }
-  }
-
-  DateTime? _parseEventDate(String dateString) {
-    try {
-      final formats = [
-        // Try common formats
-        () => DateTime.parse(dateString), // ISO 8601
-        () => DateTime.parse(dateString.split('/').reversed.join('-')), // DD/MM/YYYY
-      ];
-      
-      for (final parser in formats) {
-        try {
-          return parser();
-        } catch (_) {
-          continue;
-        }
-      }
-    } catch (e) {
-      debugPrint('Could not parse date: $dateString');
-    }
-    return null;
   }
 
   Future<void> _openMaps() async {
@@ -184,7 +161,7 @@ class _TicketPageState extends State<TicketPage> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'Event Date: ${widget.event.date}',
+                    'Event Date: ${_formatFullDateTime(widget.event.date)}',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.7),
                       fontSize: 14,
@@ -559,5 +536,15 @@ class _TicketPageState extends State<TicketPage> {
         ),
       ],
     );
+  }
+
+  String _formatFullDateTime(DateTime date) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final monthStr = months[date.month - 1];
+    final dayStr = date.day.toString();
+    final yearStr = date.year.toString();
+    final hourStr = date.hour.toString().padLeft(2, '0');
+    final minuteStr = date.minute.toString().padLeft(2, '0');
+    return '$monthStr $dayStr, $yearStr - $hourStr:$minuteStr';
   }
 }

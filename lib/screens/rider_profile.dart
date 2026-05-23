@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'edit_profile_screen.dart';
 
-class RiderProfilePage extends StatelessWidget {
+class RiderProfilePage extends StatefulWidget {
   const RiderProfilePage({Key? key}) : super(key: key);
 
+  @override
+  State<RiderProfilePage> createState() => _RiderProfilePageState();
+}
+
+class _RiderProfilePageState extends State<RiderProfilePage> {
   Future<Map<String, dynamic>> _fetchProfileData() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
@@ -189,6 +195,47 @@ class RiderProfilePage extends StatelessWidget {
                 ),
                 
                 const SizedBox(height: 60), 
+
+                // -----------------------------------------------------
+                // ACTION SECTION
+                // -----------------------------------------------------
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      // Navigate to edit profile screen
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EditProfileScreen(userData: data),
+                        ),
+                      );
+                      if (result == true) {
+                        // Force a refresh if profile was updated
+                        setState(() {});
+                      }
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF39FF14),
+                      side: const BorderSide(color: Color(0xFF39FF14), width: 2),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    icon: const Icon(Icons.edit),
+                    label: const Text(
+                      'MODIFY PROFILE',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 16), 
 
                 // -----------------------------------------------------
                 // ACTION SECTION (SIGN OUT)

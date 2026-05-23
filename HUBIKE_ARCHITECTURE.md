@@ -81,3 +81,30 @@ Each Group Leader only manages their own products through the `groupLeaderId` fi
 - **Product Form** (`widgets/product_form.dart`): Add/Edit products with image upload
 - **Admin Shop Page** (`screens/admin_shop_page.dart`): StreamBuilder displaying leader's products with edit/delete actions
 - **Dark Theme**: All shop UI follows established neon green/cyan aesthetic on dark backgrounds
+
+## Order & Checkout Flow
+
+The Hubike shop supports a flexible checkout system utilizing the `orders` collection in Firestore.
+
+### Dual Checkout Paths
+
+1. **Direct Buy**: 
+   - A user clicks "Buy Equipment" directly from a product card.
+   - The app navigates to the `OrderFormScreen`, passing the single product. It bypasses the cart state entirely.
+2. **Cart Checkout**:
+   - A user clicks the "Add to Cart" icon on multiple products.
+   - The user opens the `CartScreen` to review their items.
+   - Upon clicking "Buy" in the cart, the app navigates to the `OrderFormScreen`, passing the entire list of products in the cart.
+   - If the order completes successfully from this path, the global `CartState` is automatically cleared.
+
+### Order Data Model (`orders` collection)
+
+When an order is successfully submitted, a new document is written to the `orders` collection containing the following fields:
+
+- `name` (string): User's first name
+- `lastName` (string): User's last name
+- `phone` (string): User's contact phone number
+- `wilaya` (string): Shipping destination (State/Province)
+- `orderDate` (timestamp): The exact date and time the order was placed
+- `products` (array of objects): Complete details of all purchased products (reusing the product schema)
+- `totalAmount` (double): The calculated total cost of the order in DZD

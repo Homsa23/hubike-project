@@ -3,8 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class HubikeEvent{
   final String id; // We store the document ID (like zI0KS...) just in case you need it later
   final int capacity;
+  final int currentParticipants;
   final int coinsToEarn;
-  final String date;
+  final DateTime date;
   final String description; 
   final String eventName;
   final String categoryId;
@@ -13,10 +14,12 @@ class HubikeEvent{
   final String startingPoint;
   final String level;
   final String officialPageLink;
+  final String status;
 
   HubikeEvent({
     required this.id,
     required this.capacity,
+    this.currentParticipants = 0,
     required this.coinsToEarn,
     required this.date,
     required this.description,
@@ -27,6 +30,7 @@ class HubikeEvent{
     required this.startingPoint,
     required this.level,
     required this.officialPageLink,
+    this.status = 'Available',
   });
 
   // THE TRANSLATOR: This factory method takes a Firebase Document and builds a HubikeEvent.
@@ -35,23 +39,32 @@ class HubikeEvent{
     // Grab the raw data map from the Firebase document
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
+    DateTime eventDate = DateTime.now();
+    if (data['date'] != null) {
+      if (data['date'] is Timestamp) {
+        eventDate = (data['date'] as Timestamp).toDate();
+      } else if (data['date'] is String) {
+        eventDate = DateTime.tryParse(data['date']) ?? DateTime.now();
+      }
+    }
+
     return HubikeEvent(
       id: doc.id, 
       
-      // THE FIX: We added .toInt() to force Firebase's decimals into standard integers!
       capacity: (data['capacity'] ?? 0).toInt(),
+      currentParticipants: (data['currentParticipants'] ?? 0).toInt(),
       coinsToEarn: (data['coinsToEarn'] ?? 0).toInt(),
       price: (data['price'] ?? 0).toInt(),
       priceInCoins: (data['priceInCoins'] ?? 0).toInt(),
       
-      // Strings stay exactly the same
-      date: data['date'] ?? 'TBD',
+      date: eventDate,
       description: data['description'] ?? 'No description available.', 
       eventName: data['eventName'] ?? 'Unknown Event',
       categoryId: data['categoryId'] ?? '',
       startingPoint: data['startingPoint'] ?? 'TBD',
       level: data['level'] ?? 'All Levels',
       officialPageLink: data['officialPageLink'] ?? '',
+      status: data['status'] ?? 'Available',
     );
   }
 }

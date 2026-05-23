@@ -16,6 +16,41 @@ class LeaderDashboardPage extends StatefulWidget {
 }
 
 class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
+  String _formatDate(dynamic dateData) {
+    if (dateData == null) return 'No date';
+    if (dateData is Timestamp) {
+      final date = dateData.toDate();
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return '${months[date.month - 1]} ${date.day}, ${date.year} - ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    }
+    return dateData.toString();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    deleteForgottenEvents();
+  }
+
+  Future<void> deleteForgottenEvents() async {
+    try {
+      final firestore = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'default');
+      final fiveHoursAgo = Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 5)));
+      
+      final snapshot = await firestore
+          .collection('events')
+          .where('date', isLessThanOrEqualTo: fiveHoursAgo)
+          .get();
+
+      for (var doc in snapshot.docs) {
+        await doc.reference.delete();
+      }
+      debugPrint('Cleaned up ${snapshot.docs.length} forgotten events (Leader Dash).');
+    } catch (e) {
+      debugPrint('Failed to delete forgotten events: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -339,11 +374,11 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
                                     constraints: const BoxConstraints(),
                                   ),
                                   const SizedBox(width: 8),
-                                  // Delete Button
+                                  // End Event Button
                                   IconButton(
                                     onPressed: () => _showDeleteConfirmation(context, events[index].id, event['eventName'] ?? 'this event'),
                                     icon: const Icon(
-                                      Icons.delete,
+                                      Icons.stop_circle,
                                       color: Colors.red,
                                       size: 20,
                                     ),
@@ -362,7 +397,7 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    event['date'] ?? 'No date',
+                                    _formatDate(event['date']),
                                     style: TextStyle(
                                       color: Colors.white.withOpacity(0.7),
                                       fontSize: 12,
@@ -502,14 +537,14 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
           ),
         ),
         title: const Text(
-          'Cancel Event',
+          'End Event',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
         content: Text(
-          'Are you sure you want to cancel and delete "$eventName"? This action cannot be undone.',
+          'Are you sure you want to completely end "$eventName"? This will delete the event from the system.',
           style: TextStyle(
             color: Colors.white.withOpacity(0.8),
           ),
@@ -535,7 +570,7 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
                 
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Event cancelled and deleted'),
+                    content: Text('Event ended and removed'),
                     backgroundColor: Colors.red,
                     duration: Duration(seconds: 2),
                   ),
