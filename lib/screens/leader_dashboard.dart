@@ -35,11 +35,12 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
   Future<void> deleteForgottenEvents() async {
     try {
       final firestore = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'default');
-      final fiveHoursAgo = Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 5)));
+      // Relaxed to 24 hours so events created for 'today' don't get instantly deleted
+      final twentyFourHoursAgo = Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 24)));
       
       final snapshot = await firestore
           .collection('events')
-          .where('date', isLessThanOrEqualTo: fiveHoursAgo)
+          .where('date', isLessThanOrEqualTo: twentyFourHoursAgo)
           .get();
 
       for (var doc in snapshot.docs) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class QRScannerPage extends StatefulWidget {
   const QRScannerPage({super.key});
@@ -105,11 +106,14 @@ class _QRScannerPageState extends State<QRScannerPage> {
       }
 
       final int rewardAmount = eventDataMap['coinsToEarn'] as int? ?? 0;
+      
+      // The person scanning the QR code is the group leader
+      final String groupLeaderUid = FirebaseAuth.instance.currentUser?.uid ?? '';
 
       // Create a WriteBatch for atomic operations
       final batch = _firestore.batch();
 
-      // Update participation document (the receipt)
+      // Update participation document (the receipt/association class)
       batch.update(_firestore.collection('participation').doc(participationId), {
         'ispresent': true,
         'status': 'Completed',
@@ -117,10 +121,12 @@ class _QRScannerPageState extends State<QRScannerPage> {
         'winnedCoins': rewardAmount,
       });
 
-      // Update user document (the wallet)
-      batch.update(_firestore.collection('user').doc(userId), {
-        'coins': FieldValue.increment(rewardAmount),
-      });
+      // Update user document (the use_coins association)
+      if (groupLeaderUid.isNotEmpty) {
+        batch.update(_firestore.collection('user').doc(userId), {
+          'leaderCoins.$groupLeaderUid': FieldValue.increment(rewardAmount),
+        });
+      }
 
       // Commit all changes atomically
       await batch.commit();

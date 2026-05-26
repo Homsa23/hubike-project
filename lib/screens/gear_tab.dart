@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'product_model.dart'; // Ensure this path correctly resolves to your Product model
 import 'product_detail.dart';
 import 'cart_state.dart';
@@ -270,14 +271,24 @@ class GearTab extends StatelessWidget {
                             height: 32,
                             child: ElevatedButton(
                               onPressed: () {
-                                cartState.addProduct(product);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Added to cart!'),
-                                    backgroundColor: Color(0xFF39FF14),
-                                    duration: Duration(seconds: 1),
-                                  ),
-                                );
+                                bool added = cartState.addProduct(product);
+                                if (added) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Added to cart!'),
+                                      backgroundColor: Color(0xFF39FF14),
+                                      duration: Duration(seconds: 1),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('This item is already in your cart.'),
+                                      backgroundColor: Colors.redAccent,
+                                      duration: Duration(seconds: 1),
+                                    ),
+                                  );
+                                }
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.transparent,

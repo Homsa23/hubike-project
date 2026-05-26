@@ -9,9 +9,17 @@ class CartState extends ChangeNotifier {
   final List<Product> _items = [];
   List<Product> get items => _items;
 
-  void addProduct(Product product) {
+  bool addProduct(Product product) {
+    if (hasProduct(product.id)) {
+      return false; // Already in cart
+    }
     _items.add(product);
     notifyListeners();
+    return true; // Successfully added
+  }
+
+  bool hasProduct(String productId) {
+    return _items.any((item) => item.id == productId);
   }
 
   void removeProduct(Product product) {

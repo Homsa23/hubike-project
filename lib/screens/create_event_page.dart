@@ -65,6 +65,25 @@ class _CreateEventPageState extends State<CreateEventPage> {
         return;
       }
 
+      // Fetch the Group Leader's name
+      String leaderName = 'HUBIKE Team';
+      try {
+        final leaderDoc = await _firestore.collection('leaders').doc(user.uid).get();
+        if (leaderDoc.exists && leaderDoc.data() != null) {
+           final data = leaderDoc.data()!;
+           leaderName = data['groupName'] ?? '${data['firstName'] ?? ''} ${data['lastName'] ?? ''}'.trim();
+        } else {
+           final userDoc = await _firestore.collection('users').doc(user.uid).get();
+           if (userDoc.exists && userDoc.data() != null) {
+              final data = userDoc.data()!;
+              leaderName = '${data['firstName'] ?? ''} ${data['lastName'] ?? ''}'.trim();
+           }
+        }
+        if (leaderName.isEmpty) leaderName = 'HUBIKE Team';
+      } catch (e) {
+        // Ignore error and use default
+      }
+
       final eventData = {
         'eventName': _eventNameController.text.trim(),
         'description': _descriptionController.text.trim(),
@@ -79,6 +98,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
         'level': _selectedLevel,
         'officialPageLink': _officialPageController.text.trim(),
         'creatorId': user.uid,
+        'creatorName': leaderName,
         'createdAt': FieldValue.serverTimestamp(),
         'status': 'Available',
       };

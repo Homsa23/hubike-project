@@ -5,12 +5,14 @@ class HubikeCategory {
   final String name;
   final String description;
   final String imageUrl;
+  final String colorHex;
 
   HubikeCategory({
     required this.id,
     required this.name,
     required this.description,
     required this.imageUrl,
+    required this.colorHex,
   });
 
   // THE FACTORY: Takes the Firebase envelope and builds a Flutter instance
@@ -23,6 +25,7 @@ class HubikeCategory {
       name: data['name'] ?? 'Unknown Category',
       description: data['description'] ?? 'No description available.',
       imageUrl: data['image'] ?? 'assets/placeholder.jpg',
+      colorHex: data['color']?.toString() ?? '#39FF14',
     );
   }
 }

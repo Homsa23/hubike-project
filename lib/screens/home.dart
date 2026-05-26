@@ -24,7 +24,7 @@ class HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? currentUser;
 
   bool get signedIn => FirebaseAuth.instance.currentUser != null;
-  int get coins => (currentUser?['coins'] as int?) ?? 0;
+
   bool get isGroupLeader => (currentUser?['isGroupLeader'] as bool?) ?? false;
 
   @override
@@ -139,35 +139,7 @@ class HomeScreenState extends State<HomeScreen> {
         backgroundColor: const Color(0xFF121212), 
         centerTitle: true,
         elevation: 0,
-        actions: [
-          // Coins display (hidden for Group Leaders)
-          if (!isGroupLeader)
-            Padding(
-              padding: const EdgeInsets.only(right: 14.0),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF39FF14).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFF39FF14), width: 1),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.monetization_on, color: Color(0xFF39FF14), size: 20),
-                    const SizedBox(width: 6),
-                    Text(
-                      signedIn ? '$coins' : '0',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
+
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: GestureDetector(

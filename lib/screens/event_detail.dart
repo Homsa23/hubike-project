@@ -177,7 +177,7 @@ class EventDetailPage extends StatelessWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'HUBIKE TEAM',
+                                event.creatorName.toUpperCase(),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 18,

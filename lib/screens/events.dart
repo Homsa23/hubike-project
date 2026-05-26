@@ -19,6 +19,9 @@ class _EventsPageState extends State<EventsPage> {
   // We now store the whole Category object so we can easily grab its image and description!
   // If it's null, that means we are on the "All" tab.
   HubikeCategory? selectedCategory; 
+  
+  // A local cache so Event Cards instantly know their Category's color without extra database reads!
+  final Map<String, HubikeCategory> cachedCategories = {};
 
   @override
   void initState() {
@@ -29,11 +32,12 @@ class _EventsPageState extends State<EventsPage> {
   Future<void> deleteForgottenEvents() async {
     try {
       final firestore = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'default');
-      final fiveHoursAgo = Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 5)));
+      // Relaxed to 24 hours so testing/today events aren't instantly deleted
+      final twentyFourHoursAgo = Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 24)));
       
       final snapshot = await firestore
           .collection('events')
-          .where('date', isLessThanOrEqualTo: fiveHoursAgo)
+          .where('date', isLessThanOrEqualTo: twentyFourHoursAgo)
           .get();
 
       for (var doc in snapshot.docs) {
@@ -88,6 +92,20 @@ class _EventsPageState extends State<EventsPage> {
                   List<HubikeCategory> liveCategories = snapshot.data!.docs
                       .map((doc) => HubikeCategory.fromFirestore(doc))
                       .toList();
+
+                  // Save them to our cache quietly so the Event Cards can use their colors
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    bool needsUpdate = false;
+                    for (var cat in liveCategories) {
+                      if (!cachedCategories.containsKey(cat.id) || cachedCategories[cat.id]?.colorHex != cat.colorHex) {
+                        cachedCategories[cat.id] = cat;
+                        needsUpdate = true;
+                      }
+                    }
+                    if (needsUpdate && mounted) {
+                      setState(() {}); // Redraw the event cards now that we have the colors!
+                    }
+                  });
 
                   return ListView(
                     scrollDirection: Axis.horizontal,
@@ -204,16 +222,17 @@ class _EventsPageState extends State<EventsPage> {
                   StreamBuilder<QuerySnapshot>(
                     stream: (() {
                       final firestore = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'default');
-                      final fiveHoursAgo = Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 5)));
+                      // Matches the 24 hour relaxation so we see today's events!
+                      final twentyFourHoursAgo = Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 24)));
                       
                       if (selectedCategory == null) {
                         return firestore.collection('events')
-                            .where('date', isGreaterThan: fiveHoursAgo)
+                            .where('date', isGreaterThan: twentyFourHoursAgo)
                             .snapshots();
                       } else {
                         return firestore.collection('events')
                             .where('categoryId', isEqualTo: selectedCategory!.id)
-                            .where('date', isGreaterThan: fiveHoursAgo)
+                            .where('date', isGreaterThan: twentyFourHoursAgo)
                             .snapshots();
                       }
                     })(),
@@ -348,6 +367,20 @@ class _EventsPageState extends State<EventsPage> {
     bool isFull = event.currentParticipants >= event.capacity;
     bool isTooLate = DateTime.now().isAfter(event.date.subtract(const Duration(hours: 1)));
     
+    // Grab the category color from our cache!
+    HubikeCategory? eventCategory = cachedCategories[event.categoryId];
+    Color categoryColor = const Color(0xFF39FF14); // Fallback neon green
+    if (eventCategory != null && eventCategory.colorHex.isNotEmpty) {
+      try {
+        // Strip out #, 0x, and 0X so the parser doesn't crash!
+        String hex = eventCategory.colorHex.replaceAll('#', '').replaceAll('0x', '').replaceAll('0X', '');
+        if (hex.length == 6) hex = 'FF$hex'; // Add opacity if missing
+        categoryColor = Color(int.parse(hex, radix: 16));
+      } catch (e) {
+        // Fallback on error
+      }
+    }
+
     String statusDisplay = 'Available';
     Color statusColor = const Color(0xFF39FF14); // Green
     
@@ -379,51 +412,108 @@ class _EventsPageState extends State<EventsPage> {
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: const Color(0xFF121212),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withAlpha(20), width: 1),
+          // Glow effect using the category color!
+          border: Border.all(color: categoryColor.withOpacity(0.4), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: categoryColor.withOpacity(0.05),
+              blurRadius: 10,
+              spreadRadius: 1,
+            ),
+          ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  event.eventName,
-                  style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
+            // Glowing Left Color Strip
+            Container(
+              width: 6,
+              height: 120,
+              decoration: BoxDecoration(
+                color: categoryColor,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  bottomLeft: Radius.circular(16),
                 ),
-                statusDisplay == 'Available'
-                  ? Text(
-                      "+${event.coinsToEarn} Coins",
-                      style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
-                    )
-                  : Text(
-                      statusDisplay,
-                      style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
+                boxShadow: [
+                  BoxShadow(
+                    color: categoryColor.withOpacity(0.5),
+                    blurRadius: 8,
+                    spreadRadius: 0,
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            event.eventName,
+                            style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        statusDisplay == 'Available'
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: categoryColor.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                "+${event.coinsToEarn} Coins",
+                                style: TextStyle(color: categoryColor, fontWeight: FontWeight.bold, fontSize: 12),
+                              ),
+                            )
+                          : Text(
+                              statusDisplay,
+                              style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
+                      ],
                     ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.calendar_month, color: Colors.white54, size: 16),
-                const SizedBox(width: 6),
-                Text(formattedDate, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                const SizedBox(width: 16),
-                const Icon(Icons.location_on, color: Colors.white54, size: 16),
-                const SizedBox(width: 6),
-                Text(event.startingPoint, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              event.description,
-              maxLines: 2, 
-              overflow: TextOverflow.ellipsis, 
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Hosted by ${event.creatorName}",
+                      style: TextStyle(color: categoryColor.withOpacity(0.8), fontSize: 13, fontStyle: FontStyle.italic, fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.calendar_month, color: categoryColor.withOpacity(0.7), size: 16),
+                        const SizedBox(width: 6),
+                        Text(formattedDate, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                        const SizedBox(width: 16),
+                        Icon(Icons.location_on, color: categoryColor.withOpacity(0.7), size: 16),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            event.startingPoint, 
+                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      event.description,
+                      maxLines: 2, 
+                      overflow: TextOverflow.ellipsis, 
+                      style: const TextStyle(color: Colors.white54, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),

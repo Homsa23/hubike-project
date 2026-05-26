@@ -15,6 +15,7 @@ class HubikeEvent{
   final String level;
   final String officialPageLink;
   final String status;
+  final String creatorName;
 
   HubikeEvent({
     required this.id,
@@ -31,6 +32,7 @@ class HubikeEvent{
     required this.level,
     required this.officialPageLink,
     this.status = 'Available',
+    this.creatorName = 'HUBIKE Team',
   });
 
   // THE TRANSLATOR: This factory method takes a Firebase Document and builds a HubikeEvent.
@@ -65,6 +67,7 @@ class HubikeEvent{
       level: data['level'] ?? 'All Levels',
       officialPageLink: data['officialPageLink'] ?? '',
       status: data['status'] ?? 'Available',
+      creatorName: data['creatorName'] ?? 'HUBIKE Team',
     );
   }
 }

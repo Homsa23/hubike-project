@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'cart_state.dart';
 import 'product_model.dart';
 import 'order_form_screen.dart';
+import 'auth_screen.dart';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
@@ -21,6 +26,62 @@ class CartScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          // Dynamically read the group leader ID from the first item in cart
+          ListenableBuilder(
+            listenable: cartState,
+            builder: (context, _) {
+              final String currentLeaderId = cartState.items.isNotEmpty 
+                  ? cartState.items.first.groupLeaderId 
+                  : '';
+
+              if (currentLeaderId.isEmpty || FirebaseAuth.instance.currentUser == null) {
+                return const SizedBox.shrink();
+              }
+
+              return StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'default')
+                        .collection('user')
+                        .doc(FirebaseAuth.instance.currentUser!.uid)
+                        .snapshots(),
+                builder: (context, snapshot) {
+                  int shopBalance = 0;
+                  if (snapshot.hasData && snapshot.data!.exists) {
+                    final userData = snapshot.data!.data() as Map<String, dynamic>;
+                    final leaderCoinsMap = userData['leaderCoins'] as Map<String, dynamic>?;
+                    if (leaderCoinsMap != null) {
+                      shopBalance = (leaderCoinsMap[currentLeaderId] as num?)?.toInt() ?? 0;
+                    }
+                  }
+
+                  return Container(
+                    margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF39FF14).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFF39FF14), width: 1),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.monetization_on, color: Color(0xFF39FF14), size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$shopBalance',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            }
+          ),
+        ],
       ),
       body: ListenableBuilder(
         listenable: cartState,
@@ -140,6 +201,33 @@ class CartScreen extends StatelessWidget {
                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cart is empty', style: TextStyle(color: Colors.white)), backgroundColor: Colors.red));
                    return;
                 }
+
+                // Check Authentication before checkout
+                if (FirebaseAuth.instance.currentUser == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please log in to complete your purchase!'),
+                      backgroundColor: Colors.orange,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AuthScreen()),
+                  ).then((_) {
+                    // After returning from AuthScreen, if logged in, proceed
+                    if (FirebaseAuth.instance.currentUser != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => OrderFormScreen(products: List.from(cartState.items), fromCart: true),
+                        ),
+                      );
+                    }
+                  });
+                  return;
+                }
+
                 Navigator.push(
                   context,
                   MaterialPageRoute(

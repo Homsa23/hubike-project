@@ -1,10 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'product_model.dart';
+import 'cart_state.dart';
 
 class ProductDetailPage extends StatelessWidget {
   final Product product;
 
   const ProductDetailPage({super.key, required this.product});
+
+  Future<String> _fetchShopName(String uid) async {
+    if (uid.isEmpty) return 'UNKNOWN SHOP';
+    final firestore = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'default');
+    try {
+      final leaderDoc = await firestore.collection('group_leader').doc(uid).get();
+      if (leaderDoc.exists) {
+        final data = leaderDoc.data() as Map<String, dynamic>? ?? {};
+        final groupName = data['groupName']?.toString() ?? '';
+        if (groupName.trim().isNotEmpty) return groupName.trim().toUpperCase();
+      }
+      
+      // Fallback to the User collection if they don't have a specific groupName
+      final userDoc = await firestore.collection('user').doc(uid).get();
+      if (userDoc.exists) {
+        final data = userDoc.data() as Map<String, dynamic>? ?? {};
+        final firstName = data['first_name']?.toString() ?? '';
+        final lastName = data['last_name']?.toString() ?? '';
+        if (firstName.isNotEmpty || lastName.isNotEmpty) {
+          return '$firstName $lastName'.trim().toUpperCase();
+        }
+      }
+    } catch (e) {
+      // Ignore errors and fallback
+    }
+    return 'UNKNOWN SHOP';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +45,7 @@ class ProductDetailPage extends StatelessWidget {
         children: [
           // Scrollable content
           Positioned.fill(
-            bottom: 120, // Leave space for bottom button
+            bottom: 150, // Leave space for bottom button
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,6 +155,58 @@ class ProductDetailPage extends StatelessWidget {
                         ),
                       ),
                     ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // SHOP NAME INDICATOR (Group Leader)
+                  FutureBuilder<String>(
+                    future: _fetchShopName(product.groupLeaderId),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Row(
+                            children: [
+                              const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(color: Color(0xFF39FF14), strokeWidth: 2),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'LOADING SHOP...',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.5),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.storefront, color: Color(0xFF39FF14), size: 18),
+                            const SizedBox(width: 6),
+                            Text(
+                              'SHOP: ${snapshot.data ?? 'UNKNOWN'}',
+                              style: const TextStyle(
+                                color: Color(0xFF39FF14),
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
 
                   const SizedBox(height: 24),
@@ -250,7 +333,7 @@ class ProductDetailPage extends StatelessWidget {
                 children: [
                   // Price display
                   Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -271,44 +354,91 @@ class ProductDetailPage extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  // Add to Cart Button
-                  ElevatedButton(
-                    onPressed: () {
-                      // TODO: Implement cart logic
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Added to cart! (Coming soon)'),
-                          backgroundColor: Color(0xFF39FF14),
-                          duration: Duration(seconds: 2),
+                  
+                  // Shop Balance Display
+                  StreamBuilder<DocumentSnapshot>(
+                    stream: product.groupLeaderId.isNotEmpty && FirebaseAuth.instance.currentUser != null
+                        ? FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'default')
+                            .collection('user')
+                            .doc(FirebaseAuth.instance.currentUser!.uid)
+                            .snapshots()
+                        : null,
+                    builder: (context, snapshot) {
+                      int shopBalance = 0;
+                      if (snapshot.hasData && snapshot.data!.exists) {
+                        final userData = snapshot.data!.data() as Map<String, dynamic>;
+                        final leaderCoinsMap = userData['leaderCoins'] as Map<String, dynamic>?;
+                        if (leaderCoinsMap != null) {
+                          shopBalance = (leaderCoinsMap[product.groupLeaderId] as num?)?.toInt() ?? 0;
+                        }
+                      }
+                      
+                      return Container(
+                        margin: const EdgeInsets.only(top: 4, bottom: 12),
+                        child: Text(
+                          'Your Balance for this Shop: $shopBalance Coins',
+                          style: const TextStyle(
+                            color: Color(0xFF39FF14),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       );
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF39FF14),
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 0,
-                      minimumSize: const Size(double.infinity, 50),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.shopping_cart, size: 24),
-                        SizedBox(width: 8),
-                        Text(
-                          'ADD TO CART',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1,
+                  ),
+                  // Add to Cart Button
+                  ListenableBuilder(
+                    listenable: cartState,
+                    builder: (context, _) {
+                      final bool inCart = cartState.hasProduct(product.id);
+                      return ElevatedButton(
+                        onPressed: inCart ? null : () {
+                          bool added = cartState.addProduct(product);
+                          if (added) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Added to cart!'),
+                                backgroundColor: Color(0xFF39FF14),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('This item is already in your cart.'),
+                                backgroundColor: Colors.redAccent,
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: inCart ? Colors.grey[800] : const Color(0xFF39FF14),
+                          foregroundColor: inCart ? Colors.white54 : Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
                           ),
+                          elevation: 0,
+                          minimumSize: const Size(double.infinity, 50),
                         ),
-                      ],
-                    ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(inCart ? Icons.check_circle : Icons.shopping_cart, size: 24),
+                            const SizedBox(width: 8),
+                            Text(
+                              inCart ? 'ALREADY IN CART' : 'ADD TO CART',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
                   ),
                 ],
               ),

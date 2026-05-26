@@ -29,7 +29,6 @@ class _RiderProfilePageState extends State<RiderProfilePage> {
       'email': userData['email'] ?? '',
       'phone_number': userData['phone_number'] ?? '',
       'residence': userData['residence'] ?? '',
-      'coins': (userData['coins'] ?? 0),
       'image': userData['image'] ?? '',
     };
   }
@@ -81,14 +80,6 @@ class _RiderProfilePageState extends State<RiderProfilePage> {
           final image = (data['image']?.toString()) ?? '';
           final firstName = (data['first_name']?.toString()) ?? '';
           final lastName = (data['last_name']?.toString()) ?? '';
-          
-          // Safely handle coins whether it's an int, double, or string in Firestore
-          int coins = 0;
-          if (data['coins'] is num) {
-            coins = (data['coins'] as num).toInt();
-          } else if (data['coins'] is String) {
-            coins = int.tryParse(data['coins']) ?? 0;
-          }
 
           return SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -115,63 +106,7 @@ class _RiderProfilePageState extends State<RiderProfilePage> {
                 
                 const SizedBox(height: 32),
 
-                // -----------------------------------------------------
-                // WALLET SECTION
-                // -----------------------------------------------------
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E1E1E),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: const Color(0xFF39FF14).withOpacity(0.5),
-                      width: 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF39FF14).withOpacity(0.15),
-                        blurRadius: 20,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'TOTAL BALANCE',
-                        style: TextStyle(
-                          color: Colors.white54,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.monetization_on,
-                            color: Color(0xFF39FF14),
-                            size: 32,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '$coins',
-                            style: const TextStyle(
-                              color: Color(0xFF39FF14),
-                              fontSize: 36,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
 
-                const SizedBox(height: 32),
 
                 // -----------------------------------------------------
                 // INFO CARDS
