@@ -32,6 +32,7 @@ class LeaderProfilePage extends StatelessWidget {
       'email': userData['email'] ?? '',
       'phone_number': userData['phone_number'] ?? '',
       'residence': userData['residence'] ?? '',
+      'birthdate': userData['birthdate'] ?? '',
       'eventsCount': eventsSnap.docs.length,
       'image': userData['image'] ?? '',
       'groupName': leaderData['groupName'] ?? '',

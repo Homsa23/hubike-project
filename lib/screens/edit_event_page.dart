@@ -730,7 +730,6 @@ class _EditEventPageState extends State<EditEventPage> {
                     ),
                     const SizedBox(height: 16),
                     SizedBox(
-                      height: 280,
                       width: 320,
                       child: TableCalendar(
                         firstDay: DateTime.now(),

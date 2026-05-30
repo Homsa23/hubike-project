@@ -1,3 +1,7 @@
+import 'dart:io';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -31,6 +35,52 @@ class _CreateEventPageState extends State<CreateEventPage> {
   DateTime? _selectedDateTime;
 
   final List<String> _levels = ['Rider', 'Explorer', 'Elite', 'Pro'];
+
+  final ImagePicker _imagePicker = ImagePicker();
+  List<File> _selectedImages = [];
+  bool _isUploading = false;
+
+  Future<void> _pickImages() async {
+    final List<XFile> images = await _imagePicker.pickMultiImage(imageQuality: 80);
+    if (images.isNotEmpty) {
+      setState(() {
+        _selectedImages.addAll(images.map((img) => File(img.path)));
+      });
+    }
+  }
+
+  void _removeImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
+    });
+  }
+
+  Future<List<String>> _uploadImagesToCloudinary() async {
+    List<String> uploadedUrls = [];
+    for (var imageFile in _selectedImages) {
+      try {
+        final request = http.MultipartRequest(
+          'POST',
+          Uri.parse('https://api.cloudinary.com/v1_1/dopk2m742/image/upload'),
+        );
+        request.fields['upload_preset'] = 'hubike_shop';
+        request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+        
+        final response = await request.send();
+        if (response.statusCode == 200) {
+          final responseData = await response.stream.bytesToString();
+          final jsonData = json.decode(responseData);
+          uploadedUrls.add(jsonData['secure_url']);
+        } else {
+          throw Exception('Cloudinary upload failed with status ${response.statusCode}');
+        }
+      } catch (e) {
+        debugPrint('Image upload failed: $e');
+        throw Exception('Failed to upload image: $e');
+      }
+    }
+    return uploadedUrls;
+  }
 
   @override
   void dispose() {
@@ -71,17 +121,27 @@ class _CreateEventPageState extends State<CreateEventPage> {
         final leaderDoc = await _firestore.collection('leaders').doc(user.uid).get();
         if (leaderDoc.exists && leaderDoc.data() != null) {
            final data = leaderDoc.data()!;
-           leaderName = data['groupName'] ?? '${data['firstName'] ?? ''} ${data['lastName'] ?? ''}'.trim();
+           final fName = data['first_name'] ?? data['firstName'] ?? '';
+           final lName = data['last_name'] ?? data['lastName'] ?? '';
+           leaderName = data['groupName'] ?? '$fName $lName'.trim();
         } else {
            final userDoc = await _firestore.collection('users').doc(user.uid).get();
            if (userDoc.exists && userDoc.data() != null) {
               final data = userDoc.data()!;
-              leaderName = '${data['firstName'] ?? ''} ${data['lastName'] ?? ''}'.trim();
+              final fName = data['first_name'] ?? data['firstName'] ?? '';
+              final lName = data['last_name'] ?? data['lastName'] ?? '';
+              leaderName = '$fName $lName'.trim();
            }
         }
         if (leaderName.isEmpty) leaderName = 'HUBIKE Team';
       } catch (e) {
         // Ignore error and use default
+      }
+
+      setState(() => _isUploading = true);
+      List<String> finalImageUrls = [];
+      if (_selectedImages.isNotEmpty) {
+        finalImageUrls = await _uploadImagesToCloudinary();
       }
 
       final eventData = {
@@ -99,6 +159,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
         'officialPageLink': _officialPageController.text.trim(),
         'creatorId': user.uid,
         'creatorName': leaderName,
+        'imageUrls': finalImageUrls,
         'createdAt': FieldValue.serverTimestamp(),
         'status': 'Available',
       };
@@ -114,7 +175,10 @@ class _CreateEventPageState extends State<CreateEventPage> {
       _showError('Failed to create event: $e');
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+          _isUploading = false;
+        });
       }
     }
   }
@@ -223,6 +287,11 @@ class _CreateEventPageState extends State<CreateEventPage> {
               ),
               
               const SizedBox(height: 24),
+              
+              // Image Picker Section
+              _buildImagePicker(),
+              
+              const SizedBox(height: 16),
               
               // Event Name
               _buildTextField(
@@ -376,12 +445,12 @@ class _CreateEventPageState extends State<CreateEventPage> {
               
               const SizedBox(height: 32),
               
-              // Create Button
+              // Update Button
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _createEvent,
+                  onPressed: (_isLoading || _isUploading) ? null : _createEvent,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF39FF14),
                     foregroundColor: Colors.black,
@@ -391,7 +460,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
                     elevation: 0,
                     disabledBackgroundColor: Colors.grey,
                   ),
-                  child: _isLoading
+                  child: (_isLoading || _isUploading)
                       ? const CircularProgressIndicator(color: Colors.black)
                       : const Text(
                           'CREATE EVENT',
@@ -643,7 +712,6 @@ class _CreateEventPageState extends State<CreateEventPage> {
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
-          // Generate year list from current year to next year
           final currentYear = DateTime.now().year;
           final years = [currentYear, currentYear + 1];
 
@@ -673,7 +741,6 @@ class _CreateEventPageState extends State<CreateEventPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Year Picker Dropdown
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
@@ -780,40 +847,26 @@ class _CreateEventPageState extends State<CreateEventPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
                     if (selectedDay != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF39FF14).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: const Color(0xFF39FF14).withOpacity(0.3),
-                          ),
-                        ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16),
                         child: Text(
-                          'Selected: ${_formatDate(selectedDay!)}',
+                          'Selected: ${selectedDay!.day}/${selectedDay!.month}/${selectedDay!.year}',
                           style: const TextStyle(
                             color: Color(0xFF39FF14),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white54,
-                              side: BorderSide(color: Colors.white.withOpacity(0.3)),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text('Cancel'),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text(
+                            'CANCEL',
+                            style: TextStyle(color: Colors.white54),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -882,5 +935,90 @@ class _CreateEventPageState extends State<CreateEventPage> {
     final hourStr = date.hour.toString().padLeft(2, '0');
     final minuteStr = date.minute.toString().padLeft(2, '0');
     return '$monthStr $dayStr, $yearStr - $hourStr:$minuteStr';
+  }
+
+  Widget _buildImagePicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Event Photos',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (_selectedImages.isNotEmpty)
+          Container(
+            height: 120,
+            margin: const EdgeInsets.only(bottom: 16),
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _selectedImages.length,
+              itemBuilder: (context, index) {
+                return Stack(
+                  children: [
+                    Container(
+                      width: 120,
+                      margin: const EdgeInsets.only(right: 12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF39FF14).withOpacity(0.3)),
+                        image: DecorationImage(
+                          image: FileImage(_selectedImages[index]),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 16,
+                      child: GestureDetector(
+                        onTap: () => _removeImage(index),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.7),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close, color: Colors.red, size: 16),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        GestureDetector(
+          onTap: _pickImages,
+          child: Container(
+            width: double.infinity,
+            height: 60,
+            decoration: BoxDecoration(
+              color: const Color(0xFF121212).withOpacity(0.7),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF39FF14).withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.add_photo_alternate, color: const Color(0xFF39FF14)),
+                const SizedBox(width: 8),
+                Text(
+                  _selectedImages.isEmpty ? 'Select Photos' : 'Add More Photos',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

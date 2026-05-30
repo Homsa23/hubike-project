@@ -159,31 +159,16 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
               const SizedBox(height: 32),
 
               // My Hosted Events Section
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'My Hosted Events',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'My Hosted Events',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
-                  TextButton(
-                    onPressed: () {
-                      // View all hosted events
-                    },
-                    child: const Text(
-                      'View All',
-                      style: TextStyle(
-                        color: Color(0xFF39FF14),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
               const SizedBox(height: 16),
               StreamBuilder<QuerySnapshot>(

@@ -29,6 +29,7 @@ class _RiderProfilePageState extends State<RiderProfilePage> {
       'email': userData['email'] ?? '',
       'phone_number': userData['phone_number'] ?? '',
       'residence': userData['residence'] ?? '',
+      'birthdate': userData['birthdate'] ?? '',
       'image': userData['image'] ?? '',
     };
   }

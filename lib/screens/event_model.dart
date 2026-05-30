@@ -16,6 +16,7 @@ class HubikeEvent{
   final String officialPageLink;
   final String status;
   final String creatorName;
+  final List<String> imageUrls;
 
   HubikeEvent({
     required this.id,
@@ -33,6 +34,7 @@ class HubikeEvent{
     required this.officialPageLink,
     this.status = 'Available',
     this.creatorName = 'HUBIKE Team',
+    this.imageUrls = const [],
   });
 
   // THE TRANSLATOR: This factory method takes a Firebase Document and builds a HubikeEvent.
@@ -68,6 +70,7 @@ class HubikeEvent{
       officialPageLink: data['officialPageLink'] ?? '',
       status: data['status'] ?? 'Available',
       creatorName: data['creatorName'] ?? 'HUBIKE Team',
+      imageUrls: data['imageUrls'] != null ? List<String>.from(data['imageUrls']) : [],
     );
   }
 }

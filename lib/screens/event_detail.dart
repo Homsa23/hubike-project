@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -26,108 +27,16 @@ class EventDetailPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // HERO IMAGE
-                Stack(
-                  children: [
-                    Container(
-                      height: 320,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        image: const DecorationImage(
-                          image: AssetImage('assets/adventure.jpg'),
-                          fit: BoxFit.cover,
-                        ),
-                        borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(30),
-                          bottomRight: Radius.circular(30),
-                        ),
-                      ),
-                    ),
-                    // Gradient overlay at bottom
-                    Container(
-                      height: 320,
-                      decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(30),
-                          bottomRight: Radius.circular(30),
-                        ),
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            const Color(0xFF050505).withAlpha(230),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Back button
-                    Positioned(
-                      top: 50,
-                      left: 20,
-                      child: GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF121212).withAlpha(180),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.arrow_back_ios,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Capacity badge (top right)
-                    Positioned(
-                      top: 50,
-                      right: 20,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF39FF14).withAlpha(30),
-                          border: Border.all(color: const Color(0xFF39FF14).withAlpha(100)),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          'CAPACITY: ${event.capacity}',
-                          style: const TextStyle(
-                            color: Color(0xFF39FF14),
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Title on image
-                    Positioned(
-                      bottom: 20,
-                      left: 20,
-                      right: 20,
-                      child: Text(
-                        event.eventName.toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 36,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 2,
-                          height: 0.9,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                EventHeroSlideshow(event: event),
 
                 const SizedBox(height: 24),
 
                 // STATS ROW
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
+                  child: IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _buildStatCard('DATE', _formatFullDateTime(event.date), Icons.calendar_today),
                       const SizedBox(width: 10),
@@ -137,6 +46,7 @@ class EventDetailPage extends StatelessWidget {
                     ],
                   ),
                 ),
+              ),
 
                 const SizedBox(height: 24),
 
@@ -279,35 +189,87 @@ class EventDetailPage extends StatelessWidget {
 
                 const SizedBox(height: 24),
 
-                // OFFICIAL EVENT LINK
+                // OFFICIAL EVENT LINK (Or Google Search)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: GestureDetector(
                     onTap: () async {
-                      if (event.officialPageLink.isNotEmpty) {
-                        final url = Uri.parse(event.officialPageLink);
-                        if (await canLaunchUrl(url)) {
-                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                      String link = event.officialPageLink.trim();
+                      Uri? url;
+                      
+                      if (link.isNotEmpty && (link.startsWith('http://') || link.startsWith('https://'))) {
+                        // It's a valid direct link
+                        url = Uri.tryParse(link);
+                      } else {
+                        // It's just text or empty, so search Google for it!
+                        String searchQuery = link.isNotEmpty ? link : event.eventName;
+                        url = Uri.parse('https://www.google.com/search?q=${Uri.encodeComponent(searchQuery)}');
+                      }
+                      
+                      if (url != null) {
+                        bool? confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (BuildContext dialogContext) {
+                            return AlertDialog(
+                              backgroundColor: const Color(0xFF121212),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                side: BorderSide(color: Colors.white.withAlpha(20)),
+                              ),
+                              title: const Text(
+                                'Leaving Hubike',
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              ),
+                              content: Text(
+                                'You are about to open an external link:\n\n${url!.toString()}\n\nDo you want to proceed?',
+                                style: const TextStyle(color: Colors.white70),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dialogContext, false),
+                                  child: const Text('CANCEL', style: TextStyle(color: Colors.white54)),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dialogContext, true),
+                                  child: const Text('YES, OPEN LINK', style: TextStyle(color: Color(0xFF39FF14), fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+
+                        if (confirm == true) {
+                          try {
+                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Could not open link.', style: TextStyle(color: Colors.white)), backgroundColor: Colors.red),
+                              );
+                            }
+                          }
                         }
                       }
                     },
                     child: Row(
                       children: [
-                        const Icon(
-                          Icons.link,
-                          color: Color(0xFF39FF14),
+                        Icon(
+                          event.officialPageLink.isNotEmpty && event.officialPageLink.startsWith('http')
+                              ? Icons.link
+                              : Icons.search,
+                          color: const Color(0xFF39FF14),
                           size: 18,
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          event.officialPageLink.isNotEmpty
+                          event.officialPageLink.isNotEmpty && event.officialPageLink.startsWith('http')
                               ? 'Official Event Page'
-                              : 'No Official Link',
-                          style: TextStyle(
-                            color: const Color(0xFF39FF14),
+                              : 'Search Event on Google',
+                          style: const TextStyle(
+                            color: Color(0xFF39FF14),
                             fontSize: 14,
                             decoration: TextDecoration.underline,
-                            decorationColor: const Color(0xFF39FF14),
+                            decorationColor: Color(0xFF39FF14),
                           ),
                         ),
                       ],
@@ -526,42 +488,128 @@ class EventDetailPage extends StatelessWidget {
   }
 
   Widget _buildViewTicketButton(BuildContext context, String participationId) {
-    return ElevatedButton(
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => TicketPage(
-              event: event,
-              participationId: participationId,
+    return Column(
+      children: [
+        // View Ticket Button
+        ElevatedButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => TicketPage(
+                  event: event,
+                  participationId: participationId,
+                ),
+              ),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.cyan,
+            foregroundColor: Colors.black,
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
+            elevation: 0,
+            minimumSize: const Size(double.infinity, 0), // Make it stretch full width
           ),
-        );
-      },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.cyan,
-        foregroundColor: Colors.black,
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.qr_code, size: 24),
+              SizedBox(width: 8),
+              Text(
+                'VIEW MY TICKET',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
         ),
-        elevation: 0,
-      ),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.qr_code, size: 24),
-          SizedBox(width: 8),
-          Text(
-            'VIEW MY TICKET',
+        
+        const SizedBox(height: 12),
+        
+        // Cancel Participation Button
+        TextButton(
+          onPressed: () => _showCancelConfirmation(context, participationId),
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.redAccent,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+          ),
+          child: const Text(
+            'CANCEL PARTICIPATION',
             style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
               letterSpacing: 1,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
+    );
+  }
+  Future<void> _showCancelConfirmation(BuildContext context, String participationId) async {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF121212),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.white.withAlpha(20)),
+          ),
+          title: const Text(
+            'Cancel Ride?',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+            'Are you sure you want to cancel your participation? Your ticket will be deleted.',
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext), // Close dialog
+              child: const Text('NO, KEEP IT', style: TextStyle(color: Colors.white54)),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(dialogContext); // Close dialog first
+                
+                try {
+                  // Delete the participation document
+                  await FirebaseFirestore.instanceFor(
+                    app: Firebase.app(),
+                    databaseId: 'default',
+                  ).collection('participation').doc(participationId).delete();
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Participation cancelled.'),
+                        backgroundColor: Colors.redAccent,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error cancelling: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('YES, CANCEL', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -642,5 +690,192 @@ Widget _buildStatCard(String label, String value, IconData icon) {
     final hourStr = date.hour.toString().padLeft(2, '0');
     final minuteStr = date.minute.toString().padLeft(2, '0');
     return '$monthStr $dayStr, $yearStr - $hourStr:$minuteStr';
+  }
+}
+
+class EventHeroSlideshow extends StatefulWidget {
+  final HubikeEvent event;
+
+  const EventHeroSlideshow({super.key, required this.event});
+
+  @override
+  State<EventHeroSlideshow> createState() => _EventHeroSlideshowState();
+}
+
+class _EventHeroSlideshowState extends State<EventHeroSlideshow> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.event.imageUrls.length > 1) {
+      _timer = Timer.periodic(const Duration(seconds: 6), (Timer timer) {
+        if (_currentPage < widget.event.imageUrls.length - 1) {
+          _currentPage++;
+        } else {
+          _currentPage = 0;
+        }
+        
+        _pageController.animateToPage(
+          _currentPage,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeIn,
+        );
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        SizedBox(
+          height: 420,
+          width: double.infinity,
+          child: ClipRRect(
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(30),
+              bottomRight: Radius.circular(30),
+            ),
+            child: widget.event.imageUrls.isNotEmpty
+                ? PageView.builder(
+                    controller: _pageController,
+                    onPageChanged: (int page) {
+                      setState(() {
+                        _currentPage = page;
+                      });
+                    },
+                    itemCount: widget.event.imageUrls.length,
+                    itemBuilder: (context, index) {
+                      return Image.network(
+                        widget.event.imageUrls[index],
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(color: const Color(0xFF1A1A1A));
+                        },
+                      );
+                    },
+                  )
+                : Container(
+                    color: const Color(0xFF1A1A1A),
+                    child: const Center(
+                      child: Icon(Icons.directions_bike, color: Colors.white24, size: 80),
+                    ),
+                  ),
+          ),
+        ),
+        // Gradient overlay at bottom
+        Container(
+          height: 420,
+          decoration: BoxDecoration(
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(30),
+              bottomRight: Radius.circular(30),
+            ),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.transparent,
+                const Color(0xFF050505).withAlpha(230),
+              ],
+            ),
+          ),
+        ),
+        // Back button
+        Positioned(
+          top: 50,
+          left: 20,
+          child: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFF121212).withAlpha(180),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.arrow_back_ios,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+        ),
+        // Capacity badge (top right)
+        Positioned(
+          top: 50,
+          right: 20,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF39FF14).withAlpha(30),
+              border: Border.all(color: const Color(0xFF39FF14).withAlpha(100)),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              'CAPACITY: ${widget.event.capacity}',
+              style: const TextStyle(
+                color: Color(0xFF39FF14),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+              ),
+            ),
+          ),
+        ),
+        // Dot indicators (above title)
+        if (widget.event.imageUrls.length > 1)
+          Positioned(
+            bottom: 60,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                widget.event.imageUrls.length,
+                (index) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: _currentPage == index ? 24 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: _currentPage == index
+                        ? const Color(0xFF39FF14)
+                        : Colors.white.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        // Title on image
+        Positioned(
+          bottom: 20,
+          left: 20,
+          right: 20,
+          child: Text(
+            widget.event.eventName.toUpperCase(),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 36,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+              height: 0.9,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

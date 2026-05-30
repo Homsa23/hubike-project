@@ -300,22 +300,32 @@ class _EventsPageState extends State<EventsPage> {
   // HELPER METHODS
   // ---------------------------------------------------------
 
+  Color _parseColor(String colorHex) {
+    if (colorHex.isEmpty) return const Color(0xFF39FF14);
+    try {
+      String hex = colorHex.replaceAll('#', '').replaceAll('0x', '').replaceAll('0X', '');
+      if (hex.length == 6) hex = 'FF$hex';
+      return Color(int.parse(hex, radix: 16));
+    } catch (e) {
+      return const Color(0xFF39FF14);
+    }
+  }
+
   // The static "All" button
   Widget _buildAllButton() {
     bool isSelected = selectedCategory == null;
-
     return Padding(
       padding: const EdgeInsets.only(right: 8.0), 
       child: ElevatedButton(
         onPressed: () {
           setState(() {
-            selectedCategory = null; // Setting to null triggers "All" mode
+            selectedCategory = null; 
           });
         },
-        style: _buttonStyle(isSelected),
+        style: _buttonStyle(isSelected, const Color(0xFF39FF14)),
         child: Text(
           "All",
-          style: _buttonTextStyle(isSelected),
+          style: _buttonTextStyle(isSelected, const Color(0xFF39FF14)),
         ),
       ),
     );
@@ -323,41 +333,44 @@ class _EventsPageState extends State<EventsPage> {
 
   // The dynamic buttons powered by Firebase
   Widget _buildCategoryButton(HubikeCategory category) {
-    // Check if this specific category's ID matches the currently selected one
     bool isSelected = selectedCategory?.id == category.id;
+    Color catColor = _parseColor(category.colorHex);
 
     return Padding(
       padding: const EdgeInsets.only(right: 8.0), 
       child: ElevatedButton(
         onPressed: () {
           setState(() {
-            selectedCategory = category; // Save the whole category object!
+            selectedCategory = category; 
           });
         },
-        style: _buttonStyle(isSelected),
+        style: _buttonStyle(isSelected, catColor),
         child: Text(
           category.name,
-          style: _buttonTextStyle(isSelected),
+          style: _buttonTextStyle(isSelected, catColor),
         ),
       ),
     );
   }
 
   // Extracted styling to keep code clean
-  ButtonStyle _buttonStyle(bool isSelected) {
+  ButtonStyle _buttonStyle(bool isSelected, Color catColor) {
     return ElevatedButton.styleFrom(
-      backgroundColor: isSelected ? const Color(0xFF39FF14) : Colors.grey.shade900,
+      backgroundColor: isSelected ? catColor.withOpacity(0.15) : Colors.grey.shade900,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20), 
-        side: const BorderSide(color: Colors.grey, width: 0.2),
+        side: BorderSide(
+          color: isSelected ? catColor : Colors.grey.withOpacity(0.3), 
+          width: isSelected ? 1.5 : 0.5
+        ),
       ),
     );
   }
 
-  TextStyle _buttonTextStyle(bool isSelected) {
+  TextStyle _buttonTextStyle(bool isSelected, Color catColor) {
     return TextStyle(
-      color: isSelected ? Colors.black : Colors.white54,
+      color: isSelected ? catColor : Colors.white54,
       fontWeight: FontWeight.w900, 
     );
   }
@@ -369,17 +382,7 @@ class _EventsPageState extends State<EventsPage> {
     
     // Grab the category color from our cache!
     HubikeCategory? eventCategory = cachedCategories[event.categoryId];
-    Color categoryColor = const Color(0xFF39FF14); // Fallback neon green
-    if (eventCategory != null && eventCategory.colorHex.isNotEmpty) {
-      try {
-        // Strip out #, 0x, and 0X so the parser doesn't crash!
-        String hex = eventCategory.colorHex.replaceAll('#', '').replaceAll('0x', '').replaceAll('0X', '');
-        if (hex.length == 6) hex = 'FF$hex'; // Add opacity if missing
-        categoryColor = Color(int.parse(hex, radix: 16));
-      } catch (e) {
-        // Fallback on error
-      }
-    }
+    Color categoryColor = _parseColor(eventCategory?.colorHex ?? '');
 
     String statusDisplay = 'Available';
     Color statusColor = const Color(0xFF39FF14); // Green
