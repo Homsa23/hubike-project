@@ -3,6 +3,10 @@ import 'product_model.dart';
 import 'order_model.dart';
 import 'cart_state.dart';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 class OrderFormScreen extends StatefulWidget {
   final List<Product> products;
   final bool fromCart;
@@ -19,8 +23,40 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
   final _lastNameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _wilayaController = TextEditingController();
+  final _coinsInputController = TextEditingController();
   
   bool _isSubmitting = false;
+
+  int _availableCoins = 0;
+  bool _useCoins = false;
+  final double _coinValue = 10.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserCoins();
+  }
+
+  Future<void> _fetchUserCoins() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || widget.products.isEmpty) return;
+
+    final leaderId = widget.products.first.groupLeaderId;
+    final doc = await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'default')
+        .collection('user')
+        .doc(user.uid)
+        .get();
+
+    if (doc.exists && mounted) {
+      final data = doc.data() as Map<String, dynamic>;
+      final leaderCoinsMap = data['leaderCoins'] as Map<String, dynamic>?;
+      if (leaderCoinsMap != null) {
+        setState(() {
+          _availableCoins = (leaderCoinsMap[leaderId] as num?)?.toInt() ?? 0;
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -28,6 +64,7 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
     _lastNameController.dispose();
     _phoneController.dispose();
     _wilayaController.dispose();
+    _coinsInputController.dispose();
     super.dispose();
   }
 
@@ -38,7 +75,27 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
       _isSubmitting = true;
     });
 
-    final totalAmount = widget.products.fold(0.0, (sum, item) => sum + item.price);
+    final originalTotal = widget.fromCart 
+        ? cartState.totalPrice 
+        : widget.products.fold(0.0, (sum, item) => sum + item.price);
+
+    double finalTotal = originalTotal;
+    int coinsToDeduct = 0;
+
+    if (_useCoins && _availableCoins > 0) {
+      int inputCoins = int.tryParse(_coinsInputController.text) ?? 0;
+      if (inputCoins > _availableCoins) inputCoins = _availableCoins;
+      
+      double requestedDiscount = inputCoins * _coinValue;
+      
+      if (requestedDiscount >= originalTotal) {
+        finalTotal = 0;
+        coinsToDeduct = (originalTotal / _coinValue).ceil();
+      } else {
+        finalTotal = originalTotal - requestedDiscount;
+        coinsToDeduct = inputCoins;
+      }
+    }
 
     final order = OrderModel(
       name: _nameController.text.trim(),
@@ -47,11 +104,25 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
       wilaya: _wilayaController.text.trim(),
       orderDate: DateTime.now(),
       products: widget.products,
-      totalAmount: totalAmount,
+      totalAmount: finalTotal,
     );
 
     try {
       await order.saveToFirestore();
+
+      // Deduct exactly the coins used from the user's leaderCoins wallet
+      if (coinsToDeduct > 0) {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null && widget.products.isNotEmpty) {
+          final leaderId = widget.products.first.groupLeaderId;
+          await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'default')
+              .collection('user')
+              .doc(user.uid)
+              .update({
+            'leaderCoins.$leaderId': FieldValue.increment(-coinsToDeduct),
+          });
+        }
+      }
 
       if (widget.fromCart) {
         cartState.clearCart();
@@ -160,13 +231,144 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
                 style: const TextStyle(color: Colors.white70),
               ),
               const SizedBox(height: 8),
-              Text(
-                'Total: ${widget.products.fold(0.0, (sum, item) => sum + item.price).toStringAsFixed(0)} DZD',
-                style: const TextStyle(
-                  color: Color(0xFF39FF14),
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
+
+              // Coin Discount Switch
+              if (_availableCoins > 0) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white10,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF39FF14).withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Use my coins for a discount\n(Available: $_availableCoins)',
+                              style: const TextStyle(color: Colors.white, fontSize: 14),
+                            ),
+                          ),
+                          Switch(
+                            value: _useCoins,
+                            activeColor: const Color(0xFF39FF14),
+                            onChanged: (value) {
+                              setState(() {
+                                _useCoins = value;
+                                if (value) {
+                                  // Auto-fill with max useful coins
+                                  double originalTotal = widget.fromCart 
+                                      ? cartState.totalPrice 
+                                      : widget.products.fold(0.0, (sum, item) => sum + item.price);
+                                  int maxUseful = (originalTotal / _coinValue).ceil();
+                                  int fillAmount = _availableCoins > maxUseful ? maxUseful : _availableCoins;
+                                  _coinsInputController.text = fillAmount.toString();
+                                }
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                      if (_useCoins) ...[
+                        const Divider(color: Colors.white24),
+                        Row(
+                          children: [
+                            const Text('Amount to use:', style: TextStyle(color: Colors.white70)),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: TextField(
+                                controller: _coinsInputController,
+                                keyboardType: TextInputType.number,
+                                style: const TextStyle(color: Color(0xFF39FF14), fontWeight: FontWeight.bold),
+                                decoration: const InputDecoration(
+                                  hintText: '0',
+                                  hintStyle: TextStyle(color: Colors.white30),
+                                  border: UnderlineInputBorder(
+                                    borderSide: BorderSide(color: Color(0xFF39FF14)),
+                                  ),
+                                  enabledBorder: UnderlineInputBorder(
+                                    borderSide: BorderSide(color: Colors.white24),
+                                  ),
+                                  focusedBorder: UnderlineInputBorder(
+                                    borderSide: BorderSide(color: Color(0xFF39FF14)),
+                                  ),
+                                ),
+                                onChanged: (value) {
+                                  int val = int.tryParse(value) ?? 0;
+                                  if (val > _availableCoins) {
+                                    _coinsInputController.text = _availableCoins.toString();
+                                    _coinsInputController.selection = TextSelection.fromPosition(
+                                      TextPosition(offset: _coinsInputController.text.length),
+                                    );
+                                  }
+                                  setState(() {}); // Re-trigger UI to recalculate discount math
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
+                const SizedBox(height: 16),
+              ],
+
+              Builder(
+                builder: (context) {
+                  double originalTotal = widget.fromCart 
+                      ? cartState.totalPrice 
+                      : widget.products.fold(0.0, (sum, item) => sum + item.price);
+
+                  double finalTotal = originalTotal;
+                  if (_useCoins && _availableCoins > 0) {
+                    int inputCoins = int.tryParse(_coinsInputController.text) ?? 0;
+                    if (inputCoins > _availableCoins) inputCoins = _availableCoins;
+                    
+                    double discount = inputCoins * _coinValue;
+                    if (discount >= originalTotal) {
+                      finalTotal = 0;
+                    } else {
+                      finalTotal = originalTotal - discount;
+                    }
+                  }
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (_useCoins && _availableCoins > 0 && finalTotal < originalTotal) ...[
+                        Text(
+                          'Subtotal: ${originalTotal.toStringAsFixed(0)} DZD',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Discount: -${(originalTotal - finalTotal).toStringAsFixed(0)} DZD',
+                          style: const TextStyle(
+                            color: Colors.cyanAccent,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                      ],
+                      Text(
+                        'Total: ${finalTotal.toStringAsFixed(0)} DZD',
+                        style: const TextStyle(
+                          color: Color(0xFF39FF14),
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  );
+                }
               ),
               const SizedBox(height: 40),
               

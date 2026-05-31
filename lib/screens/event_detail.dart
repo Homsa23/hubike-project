@@ -419,45 +419,75 @@ class EventDetailPage extends StatelessWidget {
             return;
           }
 
+          // FIRESTORE TRANSACTION: PREVENTS RACE CONDITIONS (Double Booking)
+          final eventRef = firestore.collection('events').doc(event!.id);
           final participationId = '${user.uid}_${event.id}';
           final participationRef = firestore.collection('participation').doc(participationId);
 
-          await participationRef.set({
-            'id': participationId,
-            'userId': user.uid,
-            'eventId': event.id,
-            'registrationDate': FieldValue.serverTimestamp(),
-            'ispresent': false,
-            'joinedbycoins': false,
-            'winnedCoins': 0,
-            'status': 'Registered',
+          await firestore.runTransaction((transaction) async {
+            // 1. Lock and read the event data
+            final eventSnapshot = await transaction.get(eventRef);
+            if (!eventSnapshot.exists) {
+              throw Exception("Event no longer exists!");
+            }
+
+            final currentCount = (eventSnapshot.data()?['currentParticipants'] ?? 0) as int;
+            final capacity = (eventSnapshot.data()?['capacity'] ?? 0) as int;
+
+            // 2. Safely double check capacity inside the lock
+            if (currentCount >= capacity) {
+              throw Exception("EVENT_FULL");
+            }
+
+            // 3. Queue up the new participant and exact new participant count
+            transaction.set(participationRef, {
+              'id': participationId,
+              'userId': user.uid,
+              'eventId': event.id,
+              'registrationDate': FieldValue.serverTimestamp(),
+              'ispresent': false,
+              'joinedbycoins': false,
+              'winnedCoins': 0,
+              'status': 'Registered',
+            });
+
+            transaction.update(eventRef, {
+              'currentParticipants': currentCount + 1
+            });
           });
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Successfully joined event!'),
-              backgroundColor: Color(0xFF39FF14),
-              duration: Duration(seconds: 2),
-            ),
-          );
-
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => TicketPage(
-                event: event,
-                participationId: participationId,
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Successfully joined event!'),
+                backgroundColor: Color(0xFF39FF14),
+                duration: Duration(seconds: 2),
               ),
-            ),
-          );
+            );
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => TicketPage(
+                  event: event,
+                  participationId: participationId,
+                ),
+              ),
+            );
+          }
         } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error joining event: $e'),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 3),
-            ),
-          );
+          if (context.mounted) {
+            String errorMsg = e.toString().contains("EVENT_FULL") 
+                ? 'Sorry, this event just reached maximum capacity!'
+                : 'Error joining event: $e';
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(errorMsg),
+                backgroundColor: Colors.redAccent,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
         }
       },
       style: ElevatedButton.styleFrom(
@@ -579,11 +609,18 @@ class EventDetailPage extends StatelessWidget {
                 Navigator.pop(dialogContext); // Close dialog first
                 
                 try {
-                  // Delete the participation document
-                  await FirebaseFirestore.instanceFor(
+                  final firestore = FirebaseFirestore.instanceFor(
                     app: Firebase.app(),
                     databaseId: 'default',
-                  ).collection('participation').doc(participationId).delete();
+                  );
+
+                  // 1. Decrement the participant count safely
+                  await firestore.collection('events').doc(event.id).update({
+                    'currentParticipants': FieldValue.increment(-1)
+                  });
+
+                  // 2. Delete the participation document
+                  await firestore.collection('participation').doc(participationId).delete();
 
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

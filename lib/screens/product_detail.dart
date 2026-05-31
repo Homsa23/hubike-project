@@ -390,31 +390,54 @@ class ProductDetailPage extends StatelessWidget {
                   ListenableBuilder(
                     listenable: cartState,
                     builder: (context, _) {
-                      final bool inCart = cartState.hasProduct(product.id);
+                      int cartQty = cartState.getQuantity(product.id);
+                      int visualStock = product.quantity - cartQty;
+
+                      if (visualStock <= 0) {
+                        return ElevatedButton(
+                          onPressed: null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey[900],
+                            foregroundColor: Colors.redAccent,
+                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 0,
+                            minimumSize: const Size(double.infinity, 50),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.remove_shopping_cart, size: 24),
+                              SizedBox(width: 8),
+                              Text(
+                                'OUT OF STOCK',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
                       return ElevatedButton(
-                        onPressed: inCart ? null : () {
-                          bool added = cartState.addProduct(product);
-                          if (added) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Added to cart!'),
-                                backgroundColor: Color(0xFF39FF14),
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('This item is already in your cart.'),
-                                backgroundColor: Colors.redAccent,
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          }
+                        onPressed: () {
+                          cartState.addProduct(product);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Added to cart! (${visualStock - 1} left)'),
+                              backgroundColor: const Color(0xFF39FF14),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: inCart ? Colors.grey[800] : const Color(0xFF39FF14),
-                          foregroundColor: inCart ? Colors.white54 : Colors.black,
+                          backgroundColor: const Color(0xFF39FF14),
+                          foregroundColor: Colors.black,
                           padding: const EdgeInsets.symmetric(vertical: 18),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
@@ -422,14 +445,14 @@ class ProductDetailPage extends StatelessWidget {
                           elevation: 0,
                           minimumSize: const Size(double.infinity, 50),
                         ),
-                        child: Row(
+                        child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(inCart ? Icons.check_circle : Icons.shopping_cart, size: 24),
-                            const SizedBox(width: 8),
+                            Icon(Icons.shopping_cart, size: 24),
+                            SizedBox(width: 8),
                             Text(
-                              inCart ? 'ALREADY IN CART' : 'ADD TO CART',
-                              style: const TextStyle(
+                              'ADD TO CART',
+                              style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 1,

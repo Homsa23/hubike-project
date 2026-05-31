@@ -149,10 +149,31 @@ class CartScreen extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Text(
+                      '${item.price.toStringAsFixed(0)} DZD',
+                      style: const TextStyle(color: Color(0xFF39FF14), fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white12,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'x${cartState.getQuantity(item.id)}',
+                        style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 4),
                 Text(
-                  '${item.price.toStringAsFixed(0)} DZD',
-                  style: const TextStyle(color: Color(0xFF39FF14), fontWeight: FontWeight.bold),
+                  'Subtotal: ${(item.price * cartState.getQuantity(item.id)).toStringAsFixed(0)} DZD',
+                  style: const TextStyle(color: Colors.white54, fontSize: 12),
                 ),
               ],
             ),
@@ -163,7 +184,7 @@ class CartScreen extends StatelessWidget {
             onPressed: () {
               cartState.removeProduct(item);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Item removed'), duration: Duration(seconds: 1)),
+                const SnackBar(content: Text('Removed 1 item'), duration: Duration(seconds: 1)),
               );
             },
           ),

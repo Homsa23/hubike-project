@@ -241,16 +241,33 @@ class GearTab extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Product Name
-                    Text(
-                      product.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    // Brand & Product Name
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product.brand.toUpperCase(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          product.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 4),
                     // Price
@@ -264,70 +281,91 @@ class GearTab extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     // Action Buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: SizedBox(
-                            height: 32,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                bool added = cartState.addProduct(product);
-                                if (added) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Added to cart!'),
-                                      backgroundColor: Color(0xFF39FF14),
-                                      duration: Duration(seconds: 1),
-                                    ),
-                                  );
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('This item is already in your cart.'),
-                                      backgroundColor: Colors.redAccent,
-                                      duration: Duration(seconds: 1),
-                                    ),
-                                  );
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                foregroundColor: const Color(0xFF39FF14),
-                                elevation: 0,
-                                side: const BorderSide(color: Color(0xFF39FF14), width: 1),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                padding: EdgeInsets.zero,
+                    // Action Buttons
+                    AnimatedBuilder(
+                      animation: cartState,
+                      builder: (context, child) {
+                        int cartQty = cartState.getQuantity(product.id);
+                        int visualStock = product.quantity - cartQty;
+                        bool outOfStock = visualStock <= 0;
+
+                        return Row(
+                          children: [
+                            Expanded(
+                              child: SizedBox(
+                                height: 32,
+                                child: outOfStock
+                                    ? Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.redAccent.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: const Text(
+                                          'OUT OF\nSTOCK',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            color: Colors.redAccent,
+                                            fontSize: 8,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      )
+                                    : ElevatedButton(
+                                        onPressed: () {
+                                          cartState.addProduct(product);
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Added to cart! (${visualStock - 1} left)'),
+                                              backgroundColor: const Color(0xFF39FF14),
+                                              duration: const Duration(seconds: 1),
+                                            ),
+                                          );
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.transparent,
+                                          foregroundColor: const Color(0xFF39FF14),
+                                          elevation: 0,
+                                          side: const BorderSide(color: Color(0xFF39FF14), width: 1),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                          padding: EdgeInsets.zero,
+                                        ),
+                                        child: const Icon(Icons.add_shopping_cart, size: 16),
+                                      ),
                               ),
-                              child: const Icon(Icons.add_shopping_cart, size: 16),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 2,
-                          child: SizedBox(
-                            height: 32,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => OrderFormScreen(products: [product], fromCart: false),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: SizedBox(
+                                height: 32,
+                                child: ElevatedButton(
+                                  onPressed: outOfStock ? null : () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => OrderFormScreen(products: [product], fromCart: false),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: outOfStock ? Colors.grey[800] : const Color(0xFF39FF14),
+                                    foregroundColor: outOfStock ? Colors.white54 : Colors.black,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    padding: EdgeInsets.zero,
                                   ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF39FF14),
-                                foregroundColor: Colors.black,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                padding: EdgeInsets.zero,
+                                  child: Text(
+                                    outOfStock ? 'UNAVAILABLE' : 'Buy Equipment', 
+                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)
+                                  ),
+                                ),
                               ),
-                              child: const Text('Buy Equipment', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                             ),
-                          ),
-                        ),
-                      ],
+                          ],
+                        );
+                      },
                     ),
                   ],
                 ),
