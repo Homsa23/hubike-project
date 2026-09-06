@@ -49,6 +49,7 @@ dependencies:
   latlong2: ^0.9.1
   geolocator: ^10.1.1
   http: ^1.2.0
+  google_fonts: ^8.2.1
 
 dev_dependencies:
   
@@ -87,6 +88,8 @@ flutter:
     - assets/competitive.jpg
     - assets/family.jpg
     - assets/Training.jpg
+    - assets/images/background_pattern_hubike.png
+    
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

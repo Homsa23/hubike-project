@@ -56,8 +56,15 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF050505),
-      body: SafeArea(
-        child: SingleChildScrollView(
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/background_pattern_hubike.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -506,6 +513,7 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

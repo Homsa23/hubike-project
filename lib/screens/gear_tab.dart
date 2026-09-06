@@ -7,6 +7,7 @@ import 'product_detail.dart';
 import 'cart_state.dart';
 import 'cart_screen.dart';
 import 'order_form_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class GearTab extends StatelessWidget {
   final String groupLeaderId;
@@ -20,9 +21,9 @@ class GearTab extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'GEAR',
-          style: TextStyle(
+          style: GoogleFonts.montserrat(
             color: Color(0xFF39FF14), // Neon green accent
             fontWeight: FontWeight.bold,
             letterSpacing: 2,
