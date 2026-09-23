@@ -57,6 +57,8 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF050505),
       body: Container(
+        width: double.infinity,
+        height: double.infinity,
         decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage('assets/images/background_pattern_hubike.png'),
@@ -65,8 +67,9 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
         ),
         child: SafeArea(
           child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
-          child: Column(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(24.0, 32.0, 24.0, 100.0),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Welcome Header

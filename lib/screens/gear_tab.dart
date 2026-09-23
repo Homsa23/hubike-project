@@ -16,20 +16,30 @@ class GearTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF121212), // Minimalist dark theme base
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          'GEAR',
-          style: GoogleFonts.montserrat(
-            color: Color(0xFF39FF14), // Neon green accent
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2,
-          ),
+    return Container(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/images/background_pattern_hubike.png'),
+          fit: BoxFit.cover,
         ),
-        centerTitle: true,
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'GEAR',
+              style: GoogleFonts.rajdhani(
+                color: Colors.white, 
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.5,
+              ),
+            ),
+          ),
+          centerTitle: true,
         actions: [
           ListenableBuilder(
             listenable: cartState,
@@ -152,8 +162,9 @@ class GearTab extends StatelessWidget {
           );
         },
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildProductCard(BuildContext context, Product product) {
     return GestureDetector(
@@ -167,20 +178,16 @@ class GearTab extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E), // Slightly lighter dark for card
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFF39FF14).withOpacity(0.3), // Neon green subtle border
-          width: 1,
+          color: const Color(0xFF1E1E1E), // Slightly lighter dark for card
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF39FF14).withOpacity(0.05),
+              blurRadius: 10,
+              spreadRadius: 1,
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF39FF14).withOpacity(0.05),
-            blurRadius: 10,
-            spreadRadius: 1,
-          ),
-        ],
-      ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Column(
@@ -259,7 +266,7 @@ class GearTab extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          product.name,
+                          product.name.toUpperCase(),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -272,12 +279,25 @@ class GearTab extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     // Price
-                    Text(
-                      'DZD ${product.price.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        color: Color(0xFF39FF14), // Neon green price
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
+                    Text.rich(
+                      TextSpan(
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: product.price.toStringAsFixed(0),
+                            style: GoogleFonts.rajdhani(color: Colors.white),
+                          ),
+                          const TextSpan(
+                            text: ' DZD',
+                            style: TextStyle(
+                              color: Color(0xFF39FF14),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -328,7 +348,6 @@ class GearTab extends StatelessWidget {
                                           backgroundColor: Colors.transparent,
                                           foregroundColor: const Color(0xFF39FF14),
                                           elevation: 0,
-                                          side: const BorderSide(color: Color(0xFF39FF14), width: 1),
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                           padding: EdgeInsets.zero,
                                         ),
@@ -358,8 +377,12 @@ class GearTab extends StatelessWidget {
                                     padding: EdgeInsets.zero,
                                   ),
                                   child: Text(
-                                    outOfStock ? 'UNAVAILABLE' : 'Buy Equipment', 
-                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)
+                                    outOfStock ? 'UNAVAILABLE' : 'BUY NOW', 
+                                    style: GoogleFonts.rajdhani(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black
+                                    )
                                   ),
                                 ),
                               ),

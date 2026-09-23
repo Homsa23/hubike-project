@@ -93,7 +93,6 @@ class HomeScreenState extends State<HomeScreen> {
       }
     }
   }
-
   // Logs the user out of Firebase and clears their data from memory.
   Future<void> _signOut() async {
     await FirebaseAuth.instance.signOut();

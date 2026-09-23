@@ -10,6 +10,8 @@ import 'package:table_calendar/table_calendar.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -387,22 +389,15 @@ class _AuthScreenState extends State<AuthScreen> {
                   height: 100,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [
-                        const Color(0xFF39FF14).withOpacity(0.2),
-                        const Color(0xFF39FF14).withOpacity(0.05),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: const Color(0xFF1E1E1E),
                     border: Border.all(
-                      color: const Color(0xFF39FF14),
-                      width: 2,
+                      color: Colors.grey[700]!,
+                      width: 1.5,
                     ),
                   ),
                   child: const Icon(
                     Icons.person,
-                    color: Color(0xFF39FF14),
+                    color: Colors.white,
                     size: 50,
                   ),
                 ),
@@ -412,9 +407,9 @@ class _AuthScreenState extends State<AuthScreen> {
               // Title
               Text(
                 isSignIn ? "Welcome Back" : "Join HUBIKE",
-                style: const TextStyle(
+                style: GoogleFonts.montserrat(
                   fontSize: 36,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.bold,
                   color: Colors.white,
                   letterSpacing: 1.2,
                 ),
@@ -424,7 +419,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 isSignIn
                     ? "Sign in to continue your journey"
                     : "Create your cycling profile",
-                style: const TextStyle(
+                style: GoogleFonts.montserrat(
                   fontSize: 16,
                   color: Color(0xFFA1A1AA),
                 ),
@@ -492,7 +487,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     leading: Icon(Icons.camera_alt, color: const Color(0xFF39FF14)),
                     title: Text(
                       _selectedImage != null ? "Image Selected" : "Select Profile Picture",
-                      style: const TextStyle(color: Colors.white),
+                      style: GoogleFonts.montserrat(color: Colors.white),
                     ),
                     trailing: _selectedImage != null
                         ? CircleAvatar(
@@ -633,10 +628,9 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   child: Text(
                     isSignIn ? "SIGN IN" : "CREATE ACCOUNT",
-                    style: const TextStyle(
+                    style: GoogleFonts.montserrat(
                       fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.5,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -675,7 +669,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       child: Text(
                         isSignIn ? "Sign Up" : "Sign In",
                         style: const TextStyle(
-                          color: Color(0xFF39FF14),
+                          color: Colors.white,
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                           decoration: TextDecoration.underline,
@@ -731,7 +725,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             color: Color(0xFF39FF14),
                           ),
                         )
-                      : const Text("G", style: TextStyle(fontSize: 18)),
+                      : const FaIcon(FontAwesomeIcons.google, color: Colors.white, size: 18),
                   label: Text(_isGoogleSignInLoading ? "Signing in..." : "Continue with Google"),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
@@ -867,12 +861,12 @@ class _AuthScreenState extends State<AuthScreen> {
         obscureText: isPassword,
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
-        style: const TextStyle(color: Colors.white, fontSize: 16),
+        style: GoogleFonts.montserrat(color: Colors.white, fontSize: 16),
         decoration: InputDecoration(
           filled: true,
           fillColor: const Color(0xFF1E1E1E),
           hintText: label,
-          hintStyle: const TextStyle(color: Color(0xFFA1A1AA)),
+          hintStyle: GoogleFonts.montserrat(color: const Color(0xFFA1A1AA)),
           prefixIcon: Icon(icon, color: const Color(0xFF39FF14).withOpacity(0.8)),
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           border: OutlineInputBorder(
@@ -907,10 +901,10 @@ class _AuthScreenState extends State<AuthScreen> {
         child: TextField(
           controller: birthDateController,
           enabled: false,
-          style: const TextStyle(color: Colors.white),
+          style: GoogleFonts.montserrat(color: Colors.white),
           decoration: InputDecoration(
             hintText: 'Birth Date (DD/MM/YYYY)',
-            hintStyle: const TextStyle(color: Color(0xFFA1A1AA)),
+            hintStyle: GoogleFonts.montserrat(color: const Color(0xFFA1A1AA)),
             prefixIcon: Icon(Icons.calendar_today, color: const Color(0xFF39FF14)),
             suffixIcon: Icon(Icons.arrow_drop_down, color: Colors.white54),
             border: InputBorder.none,
