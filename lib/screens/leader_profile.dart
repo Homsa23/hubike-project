@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class LeaderProfilePage extends StatelessWidget {
   const LeaderProfilePage({Key? key}) : super(key: key);
@@ -100,11 +101,10 @@ class LeaderProfilePage extends StatelessWidget {
                 // Name
                 Text(
                   '${firstName.toUpperCase()} ${lastName.toUpperCase()}',
-                  style: const TextStyle(
+                  style: GoogleFonts.montserrat(
                     color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.2,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -113,11 +113,11 @@ class LeaderProfilePage extends StatelessWidget {
                 // Group Name
                 Text(
                   groupName.isNotEmpty ? groupName.toUpperCase() : 'NO GROUP ASSIGNED',
-                  style: const TextStyle(
+                  style: GoogleFonts.montserrat(
                     color: Colors.cyanAccent, // Bright cyan accent
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
+              
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -133,13 +133,9 @@ class LeaderProfilePage extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: const Color(0xFF1E1E1E),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: const Color(0xFF39FF14).withOpacity(0.5),
-                      width: 1,
-                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF39FF14).withOpacity(0.15),
+                        color: const Color(0xFF151515).withOpacity(0.15),
                         blurRadius: 20,
                         spreadRadius: 2,
                       ),

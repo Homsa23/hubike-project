@@ -123,8 +123,8 @@ class ProductDetailPage extends StatelessWidget {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF39FF14).withAlpha(30),
-                            border: Border.all(color: const Color(0xFF39FF14).withAlpha(100)),
+                            color: const Color(0xFF121212).withAlpha(30),
+                            
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
@@ -377,8 +377,8 @@ class ProductDetailPage extends StatelessWidget {
                         margin: const EdgeInsets.only(top: 4, bottom: 12),
                         child: Text(
                           'Your Balance for this Shop: $shopBalance Coins',
-                          style: const TextStyle(
-                            color: Color(0xFF39FF14),
+                          style: TextStyle(
+                            color: Colors.grey[400],
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                           ),

@@ -7,6 +7,7 @@ import 'edit_event_page.dart';
 import 'manage_participants_page.dart';
 import 'qr_scanner_page.dart';
 import 'live_map_page.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class LeaderDashboardPage extends StatefulWidget {
   const LeaderDashboardPage({super.key});
@@ -76,35 +77,31 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF39FF14).withOpacity(0.15),
-                      const Color(0xFF39FF14).withOpacity(0.05),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: const Color(0xFF151515), // Solid dark charcoal
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFF39FF14).withOpacity(0.3),
-                    width: 1,
-                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.4),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4), // Subtle floating shadow
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.admin_panel_settings,
-                          color: const Color(0xFF39FF14),
+                          color: Color(0xFF39FF14),
                           size: 32,
                         ),
                         const SizedBox(width: 12),
-                        const Text(
+                        Text(
                           'Group Leader',
-                          style: TextStyle(
-                            color: Color(0xFF39FF14),
+                          style: GoogleFonts.montserrat(
+                            color: const Color(0xFF39FF14),
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.0,
@@ -113,9 +110,9 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    const Text(
+                    Text(
                       'Welcome back, Leader!',
-                      style: TextStyle(
+                      style: GoogleFonts.montserrat(
                         color: Colors.white,
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -124,7 +121,7 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
                     const SizedBox(height: 8),
                     Text(
                       'Manage your events, shop inventory, and scan rider tickets.',
-                      style: TextStyle(
+                      style: GoogleFonts.montserrat(
                         color: Colors.white.withOpacity(0.6),
                         fontSize: 14,
                       ),
@@ -135,9 +132,12 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
               const SizedBox(height: 32),
 
               // Create New Event Button
-              SizedBox(
+              Container(
                 width: double.infinity,
                 height: 56,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: ElevatedButton.icon(
                   onPressed: () {
                     Navigator.push(
@@ -148,12 +148,11 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
                     );
                   },
                   icon: const Icon(Icons.add_circle_outline, size: 24),
-                  label: const Text(
-                    'Create New Event',
-                    style: TextStyle(
+                  label: Text(
+                    'CREATE NEW EVENT',
+                    style: GoogleFonts.rajdhani(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
@@ -162,18 +161,18 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    elevation: 0,
+                    elevation: 0, // Keeps the button flat so the container's shadow handles the glow
                   ),
                 ),
               ),
               const SizedBox(height: 32),
 
               // My Hosted Events Section
-              const Align(
+              Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'My Hosted Events',
-                  style: TextStyle(
+                  style: GoogleFonts.montserrat(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -202,10 +201,6 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
                       decoration: BoxDecoration(
                         color: const Color(0xFF121212),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.1),
-                          width: 1,
-                        ),
                       ),
                       child: const Center(
                         child: CircularProgressIndicator(
@@ -221,10 +216,6 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
                       decoration: BoxDecoration(
                         color: const Color(0xFF121212),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.1),
-                          width: 1,
-                        ),
                       ),
                       child: Center(
                         child: Text(
@@ -246,15 +237,11 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
                       decoration: BoxDecoration(
                         color: const Color(0xFF121212),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.1),
-                          width: 1,
-                        ),
                       ),
                       child: Center(
                         child: Text(
                           "You haven't hosted any events yet.",
-                          style: TextStyle(
+                          style: GoogleFonts.montserrat(
                             color: Colors.white.withOpacity(0.6),
                             fontSize: 14,
                           ),
@@ -436,24 +423,14 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
               Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF39FF14).withOpacity(0.2),
-                      const Color(0xFF39FF14).withOpacity(0.05),
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
+                  color: const Color(0xFF151515),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: const Color(0xFF39FF14),
-                    width: 2,
-                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF39FF14).withOpacity(0.2),
+                      color: Colors.black.withOpacity(0.5),
                       blurRadius: 20,
                       spreadRadius: 2,
+                      offset: const Offset(0, 4), // Subtle floating shadow
                     ),
                   ],
                 ),
@@ -470,19 +447,10 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
                   },
                     borderRadius: BorderRadius.circular(20),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 48.0, horizontal: 24.0),
+                      padding: const EdgeInsets.symmetric(vertical: 48.0, horizontal: 20.0),
                       child: Column(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF39FF14).withOpacity(0.15),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: const Color(0xFF39FF14),
-                                width: 2,
-                              ),
-                            ),
                             child: const Icon(
                               Icons.qr_code_scanner,
                               size: 48,
@@ -490,9 +458,9 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
                             ),
                           ),
                           const SizedBox(height: 20),
-                          const Text(
+                          Text(
                             'Scan Rider Tickets',
-                            style: TextStyle(
+                            style: GoogleFonts.montserrat(
                               color: Colors.white,
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
@@ -502,7 +470,7 @@ class _LeaderDashboardPageState extends State<LeaderDashboardPage> {
                           const SizedBox(height: 8),
                           Text(
                             'Tap to scan and validate event tickets',
-                            style: TextStyle(
+                            style: GoogleFonts.montserrat(
                               color: Colors.white.withOpacity(0.5),
                               fontSize: 14,
                             ),

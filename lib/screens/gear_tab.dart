@@ -34,7 +34,7 @@ class GearTab extends StatelessWidget {
               'GEAR',
               style: GoogleFonts.rajdhani(
                 color: Colors.white, 
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.bold,
                 letterSpacing: 1.5,
               ),
             ),
@@ -146,7 +146,12 @@ class GearTab extends StatelessWidget {
 
           // Responsive 2-column GridView
           return GridView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 16,
+              bottom: 120.0,
+            ),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               crossAxisSpacing: 16,
@@ -277,24 +282,27 @@ class GearTab extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    // THIS IS THE FIX: Spacer acts like a spring, pushing the price to the bottom
+                    const Spacer(), 
+                    
                     // Price
                     Text.rich(
                       TextSpan(
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 20, // Slightly larger number for premium impact
                           fontWeight: FontWeight.w900,
                         ),
                         children: [
                           TextSpan(
                             text: product.price.toStringAsFixed(0),
-                            style: GoogleFonts.rajdhani(color: Colors.white),
+                            style: GoogleFonts.rajdhani(color: Colors.white,fontStyle: FontStyle.italic),
                           ),
                           const TextSpan(
                             text: ' DZD',
                             style: TextStyle(
-                              color: Color(0xFF39FF14),
+                              color: Colors.cyan,
                               fontSize: 14,
+                              fontStyle: FontStyle.italic,
                             ),
                           ),
                         ],
@@ -379,9 +387,9 @@ class GearTab extends StatelessWidget {
                                   child: Text(
                                     outOfStock ? 'UNAVAILABLE' : 'BUY NOW', 
                                     style: GoogleFonts.rajdhani(
-                                      fontSize: 11,
+                                      fontSize: 14,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.black
+                                      color: Colors.black,
                                     )
                                   ),
                                 ),
