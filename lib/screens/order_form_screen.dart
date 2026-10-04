@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'product_model.dart';
 import 'order_model.dart';
 import 'cart_state.dart';
@@ -401,35 +402,55 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
   }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-        prefixIcon: Icon(icon, color: const Color(0xFF39FF14)),
-        filled: true,
-        fillColor: const Color(0xFF121212),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF39FF14)),
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return 'Please enter $label';
-        }
-        return null;
-      },
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        style: GoogleFonts.montserrat(color: Colors.white, fontSize: 16),
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: const Color(0xFF1E1E1E),
+          hintText: label,
+          hintStyle: GoogleFonts.montserrat(color: const Color(0xFFA1A1AA)),
+          prefixIcon: Icon(icon, color: const Color(0xFF39FF14).withOpacity(0.8)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.white.withOpacity(0.05), width: 1),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFF39FF14), width: 2),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Colors.redAccent, width: 1),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+          ),
+        ),
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return 'Please enter $label';
+          }
+          return null;
+        },
+      ),
     );
   }
 }

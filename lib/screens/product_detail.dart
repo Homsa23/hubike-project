@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'product_model.dart';
 import 'cart_state.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ProductDetailPage extends StatelessWidget {
   final Product product;
@@ -145,11 +146,11 @@ class ProductDetailPage extends StatelessWidget {
                         right: 20,
                         child: Text(
                           product.name.toUpperCase(),
-                          style: const TextStyle(
+                          style: GoogleFonts.montserrat(
                             color: Colors.white,
-                            fontSize: 36,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 2,
+                            fontSize: 35,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 1.5,
                             height: 0.9,
                           ),
                         ),
@@ -288,18 +289,18 @@ class ProductDetailPage extends StatelessWidget {
                               children: [
                                 Text(
                                   product.condition.toUpperCase(),
-                                  style: const TextStyle(
+                                  style: GoogleFonts.rajdhani(
                                     color: Colors.white,
-                                    fontSize: 16,
+                                    fontSize: 19,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                const Text(
+                                Text(
                                   'Product Condition',
-                                  style: TextStyle(
+                                  style: GoogleFonts.montserrat(
                                     color: Colors.white54,
-                                    fontSize: 12,
+                                    fontSize: 11,
                                   ),
                                 ),
                               ],
@@ -340,15 +341,15 @@ class ProductDetailPage extends StatelessWidget {
                         const Icon(
                           Icons.payments_outlined,
                           color: Colors.white70,
-                          size: 20,
+                          size: 26,
                         ),
                         const SizedBox(width: 8),
                         Text(
                           '${product.price.toStringAsFixed(0)} DZD',
-                          style: const TextStyle(
+                          style: GoogleFonts.rajdhani(
                             color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ],
@@ -445,16 +446,16 @@ class ProductDetailPage extends StatelessWidget {
                           elevation: 0,
                           minimumSize: const Size(double.infinity, 50),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(Icons.shopping_cart, size: 24),
                             SizedBox(width: 8),
                             Text(
                               'ADD TO CART',
-                              style: TextStyle(
+                              style: GoogleFonts.montserrat(
                                 fontSize: 18,
-                                fontWeight: FontWeight.w900,
+                                fontWeight: FontWeight.w600,
                                 letterSpacing: 1,
                               ),
                             ),
@@ -489,19 +490,21 @@ class ProductDetailPage extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               label,
-              style: const TextStyle(
+              style: GoogleFonts.montserrat(
                 color: Colors.white54,
                 fontSize: 10,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
+                height: 1.2,
               ),
             ),
             const SizedBox(height: 2),
             Text(
               value,
-              style: const TextStyle(
+              style: GoogleFonts.rajdhani(
                 color: Colors.white,
-                fontSize: 14,
+                fontSize: 17,
                 fontWeight: FontWeight.bold,
+                letterSpacing: 1,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

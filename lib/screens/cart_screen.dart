@@ -102,9 +102,14 @@ class CartScreen extends StatelessWidget {
         builder: (context, _) {
           if (cartState.items.isEmpty) {
             return const Center(
-              child: Text(
-                'Your cart is empty',
-                style: TextStyle(color: Colors.white70, fontSize: 18),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Your cart is empty',
+                    style: TextStyle(color: Colors.white70, fontSize: 18),
+                  ),
+                ],
               ),
             );
           }
